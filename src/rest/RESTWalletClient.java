@@ -9,6 +9,7 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.net.ssl.SSLSession;
 
 import org.glassfish.jersey.client.ClientConfig;
 
@@ -16,12 +17,25 @@ import wallet.Wallet;
 
 public class RESTWalletClient implements Wallet {
 	
+	private static final String PATH = "./tls/Client/"; // "/home/sd"
+	private static final String CLIENT_KEYSTORE = PATH + "client-ks.jks";
+	private static final String CLIENT_KEYSTORE_PWD = "CSD1819";
+	private static final String CLIENT_TRUSTSTORE = PATH + "client-ts.jks";
+	private static final String CLIENT_TRUSTSTORE_PWD = "CSD1819";
+	
 	private WebTarget target;
 	
 	public RESTWalletClient(String server_location) { 
+		
+		System.setProperty("javax.net.ssl.keyStore",  CLIENT_KEYSTORE);
+		System.setProperty("javax.net.ssl.keyStorePassword", CLIENT_KEYSTORE_PWD);
+		System.setProperty("javax.net.ssl.trustStore", CLIENT_TRUSTSTORE);
+		System.setProperty("javax.net.ssl.trustStorePassword", CLIENT_TRUSTSTORE_PWD);
 
 		ClientConfig config = new ClientConfig();
-		Client client = ClientBuilder.newClient(config);
+		//config.property(ClientProperties.CONNECT_TIMEOUT, CONNECT_TIMEOUT);
+		//config.property(ClientProperties.READ_TIMEOUT, timeout);
+		Client client = ClientBuilder.newBuilder().hostnameVerifier((String hostname, SSLSession cts) -> true).withConfig(config).build();
 
 		URI baseURI = UriBuilder.fromUri(server_location).build();
 

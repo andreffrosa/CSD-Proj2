@@ -10,17 +10,10 @@ public class BFTReplicatedWallet implements Wallet {
 	int id;
 
 	public BFTReplicatedWallet(int id) {
-		//server = new BFTWalletServer(id);
-
-		wallet = new BFTWalletClient(id + 1000);
+		wallet = new BFTWalletClient(id /*+ 1000*/);
 		new Thread( () -> {server = new BFTWalletServer(id); }).start(); // TODO: Assim ou pode ter o mesmo id?
 		
 		this.id = id;
-	}
-	
-	public void start() {
-		//wallet = new BFTWalletClient(id + 1000);
-		//new Thread( () -> {server = new BFTWalletServer(id); }).start();
 	}
 
 	@Override

@@ -13,10 +13,10 @@ import bftsmart.tom.ServiceProxy;
 
 public class BFTWalletClient implements wallet.Wallet {
 
-	ServiceProxy serviceProxy;
+	private ServiceProxy serviceProxy;
 
 	public BFTWalletClient(int clientId) {
-		serviceProxy = new ServiceProxy(clientId);
+		serviceProxy = new ServiceProxy(clientId, null, null, new ReplyExtractor(), null);
 	}
 
 	public void close() {
@@ -43,9 +43,8 @@ public class BFTWalletClient implements wallet.Wallet {
 					return objIn.readInt();
 				}
 		} catch (IOException e) {
-			System.out.println("Exception creating money: " + e.getMessage());
+			throw new RuntimeException("Exception creating money: " + e.getMessage());
 		}
-		throw new RuntimeException("Empty response"); 
 	}
 
 	@Override
@@ -69,13 +68,12 @@ public class BFTWalletClient implements wallet.Wallet {
 					return objIn.readBoolean();
 				}
 		} catch (IOException e) {
-			System.out.println("Exception transfering money: " + e.getMessage());
-		}
-		throw new RuntimeException("Empty response"); 
+			throw new RuntimeException("Exception transfering money: " + e.getMessage());
+		} 
 	}
 
 	@Override
-	public int currentAmount(String who) {
+	public int currentAmount(String who) { // Enviar directamente a partir do server ou fazer desta forma?
 		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
 
@@ -85,7 +83,8 @@ public class BFTWalletClient implements wallet.Wallet {
 			objOut.flush();
 			byteOut.flush();
 
-			byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
+			//byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
+			byte[] reply = serviceProxy.invokeUnordered(byteOut.toByteArray());
 			if (reply.length == 0)
 				throw new RuntimeException("Empty response"); 
 			try (ByteArrayInputStream byteIn = new ByteArrayInputStream(reply);
@@ -93,9 +92,8 @@ public class BFTWalletClient implements wallet.Wallet {
 				return objIn.readInt();
 			}
 		} catch (IOException e) {
-			System.out.println("Exception checking money: " + e.getMessage());
+			throw new RuntimeException("Exception checking money: " + e.getMessage());
 		}
-		throw new RuntimeException("Empty response"); 
 	}
 
 }

@@ -17,12 +17,13 @@ import javax.net.ssl.SSLSession;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 
+import bft.BFTReply;
 import wallet.Wallet;
 
 public class RESTWalletClient implements Wallet {
 
 	// Constants
-	private static final String PATH = "./tls/Client/"; // "/home/sd"
+	private static final String PATH = "./tls/Client/"; 
 	private static final String CLIENT_KEYSTORE = PATH + "client-ks.jks";
 	private static final String CLIENT_KEYSTORE_PWD = "CSD1819";
 	private static final String CLIENT_TRUSTSTORE = PATH + "client-ts.jks";
@@ -54,19 +55,29 @@ public class RESTWalletClient implements Wallet {
 	}
 
 	private <T> T processRequest(RequestHandler<T> requestHandler) {
-	
+
 		List<String> servers = new ArrayList<>(Arrays.asList(this.servers));
 		int index = -1;
-		
+
 		for (int current_try = 0; current_try < MAX_TRIES; current_try++) {
+			
+			if(servers.isEmpty()) {
+				logger.log(Level.WARNING, String.format("Aborted request! All the servers didn't respond..."));
+				return null;
+			}
+			
+			index = (int) Math.floor(Math.random()*servers.size());
+			
 			try {
-				index = (int) Math.round(Math.random()*servers.size());
-				//logger.log(Level.INFO, String.format("Contacting server %s .... retry: %d", servers.get(index), current_try));
 				return requestHandler.execute(servers.get(index));
-			} catch (ProcessingException pe) {
-				pe.printStackTrace();
-				logger.log(Level.INFO, String.format("Error contacting server %s .... retry: %d", servers.get(index), current_try));
-				servers.remove(index);
+			} catch (ProcessingException e) {
+				if( e.getMessage().contains("java.net.ConnectException: Connection refused (Connection refused)") ) {
+					logger.log(Level.INFO, String.format("Error contacting server %s .... retry: %d", servers.get(index), current_try));
+					servers.remove(index); 
+				} else {
+					e.printStackTrace();
+					return null;
+				}
 			}
 		}
 
@@ -74,51 +85,57 @@ public class RESTWalletClient implements Wallet {
 		return null;
 	}
 
-	// TODO: verificar se a passagem de parametros está correta: amount é não negativa e assim?
-
-	// TODO: Colocar as repetições de pedidos como em SD
-
 	@Override
 	public int createMoney(String who, int amount) {
 
-		Integer balance = processRequest((location) -> {
-			Response response = client.target(location).path(Wallet.PATH + "/create/").queryParam("who", who).queryParam("amount", amount).request().post(Entity.entity(amount, MediaType.APPLICATION_JSON));
-			
+		BFTReply balance = processRequest((location) -> {
+			Response response = client.target(location).path(DistributedWallet.PATH + "/create/").queryParam("who", who).queryParam("amount", amount).request().post(Entity.entity(amount, MediaType.APPLICATION_JSON));
+
 			if (response.getStatus() == 200) {
-				return response.readEntity(Integer.class);
+				return (BFTReply) response.readEntity(BFTReply.class);
 			} else
 				throw new RuntimeException("WalletClient Create: " + response.getStatus());
 		});
 
-		return balance != null ? balance : 0;
+		if( balance.isValid() )
+			return balance.getReplyAsInt();
+		else
+			throw new RuntimeException("Replies are not valid!");
 	}
 
 	@Override
 	public boolean transfer(String from, String to, int amount) {
-		Boolean status = processRequest((location) -> {
-			Response response = client.target(location).path(Wallet.PATH + "/transfer/").queryParam("from", from).queryParam("to", to).queryParam("amount", amount).request().post(Entity.entity(amount, MediaType.APPLICATION_JSON));
-			
+
+		BFTReply status = processRequest((location) -> {
+			Response response = client.target(location).path(DistributedWallet.PATH + "/transfer/").queryParam("from", from).queryParam("to", to).queryParam("amount", amount).request().post(Entity.entity(amount, MediaType.APPLICATION_JSON));
+
 			if (response.getStatus() == 200) {
-				return response.readEntity(Boolean.class);
+				return (BFTReply) response.readEntity(BFTReply.class);
 			} else
 				throw new RuntimeException("WalletClient Transfer: " + response.getStatus());
 		});
 
-		return status != null ? status : false;
+		if( status.isValid() )
+			return status.getReplyAsBoolean(); 
+		else
+			throw new RuntimeException("Replies are not valid!");
 	}
 
 	@Override
 	public int currentAmount(String who) {
-		Integer balance = processRequest((location) -> {
-			Response response = client.target(location).path(Wallet.PATH + "/" + who + "/").request().get();
-			
+		BFTReply balance = processRequest((location) -> {
+			Response response = client.target(location).path(DistributedWallet.PATH + "/" + who + "/").request().get();
+
 			if (response.getStatus() == 200) {
-				return response.readEntity(Integer.class);
+				return (BFTReply) response.readEntity(BFTReply.class);
 			} else
 				throw new RuntimeException("WalletClient currentAmount: " + response.getStatus());
 		});
 
-		return balance != null ? balance : 0;
+		if( balance.isValid() )
+			return balance.getReplyAsInt();
+		else
+			throw new RuntimeException("Replies are not valid!");
 	}
 
 }

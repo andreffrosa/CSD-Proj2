@@ -13,13 +13,12 @@ import com.sun.net.httpserver.HttpsServer;
 
 import bft.BFTReplicatedWallet;
 import rest.tls.ClientCertificateVerifier;
-import wallet.Wallet;
 
 @SuppressWarnings("restriction")
 public class RESTWalletServer {
 
 	// Constants
-	private static final String PATH = "./tls/Server/"; // "/home/sd"
+	private static final String PATH = "./tls/Server/";
 	private static final String SERVER_KEYSTORE = PATH + "server-ks.jks";
 	private static final String SERVER_KEYSTORE_PWD = "CSD1819";
 	private static final String SERVER_TRUSTSTORE = PATH + "server-ts.jks";
@@ -55,7 +54,7 @@ public class RESTWalletServer {
 		HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
 
 		ResourceConfig config = new ResourceConfig();
-		Wallet wallet = new BFTReplicatedWallet(id);
+		DistributedWallet wallet = new BFTReplicatedWallet(id);
 		config.register(wallet);
 
 		HttpsServer server = (HttpsServer) JdkHttpServerFactory.createHttpServer(baseUri, config, ctx, false);
@@ -63,11 +62,6 @@ public class RESTWalletServer {
 		ccv.configureHttps(server);
 
 		server.start();
-
-		//ResourceConfig config = new ResourceConfig();
-		//config.register(new BFTReplicatedWallet(id) );
-
-		/*HttpServer server = JdkHttpServerFactory.createHttpServer(baseUri, config);*/
 
 		System.out.println("REST Wallet Server ready @ " + baseUri);
 	}

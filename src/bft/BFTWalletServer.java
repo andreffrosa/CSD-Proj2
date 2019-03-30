@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 import bftsmart.tom.MessageContext;
 import bftsmart.tom.ServiceReplica;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
+import wallet.InvalidNumberException;
 import wallet.SimpleWallet;
 import wallet.Wallet;
 
@@ -110,10 +111,10 @@ public class BFTWalletServer extends DefaultRecoverable {
 				reply = new byte[0];
 			}
 
-		} catch (IOException | ClassNotFoundException e) {
+		} catch (IOException | ClassNotFoundException | InvalidNumberException e) {
 			logger.log(Level.SEVERE, "Ocurred during wallet operation execution", e);
 		}
-		
+
 		return reply;
 	}
 
@@ -123,7 +124,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 		byte[] reply = null;
 		boolean hasReply = false;
 		String who;
-		int amount;
+		int balance;
 
 		// iterations++;
 
@@ -136,12 +137,14 @@ public class BFTWalletServer extends DefaultRecoverable {
 			switch (reqType) {
 			case CURRENT_AMOUNT:
 				who = objIn.readUTF();
-				amount = wallet.currentAmount(who);
+
+				balance = wallet.currentAmount(who);
+
+				objOut.writeInt(balance);
 				hasReply = true;
 
-				System.out.println("(" + iterations + ") currentAmount(" + who + ") : " + amount);
+				System.out.println("(" + iterations + ") currentAmount(" + who + ") : " + balance);
 
-				objOut.writeInt(amount);
 				break;
 			default:
 				logger.log(Level.WARNING, "in appExecuteUnordered only read operations are supported");
@@ -191,9 +194,9 @@ public class BFTWalletServer extends DefaultRecoverable {
 		byte[][] replies = new byte[commands.length][];
 		for (int i = 0; i < commands.length; i++) {
 			//if (msgCtxs != null && msgCtxs[i] != null) {
-				replies[i] = executeSingle(commands[i], msgCtxs[i]);
+			replies[i] = executeSingle(commands[i], msgCtxs[i]);
 			//} else
-				//replies[i] = executeSingle(commands[i], null);
+			//replies[i] = executeSingle(commands[i], null);
 		}
 
 		return replies;

@@ -2,6 +2,7 @@ package rest;
 
 import java.io.Console;
 
+import wallet.InvalidNumberException;
 import wallet.Wallet;
 
 public class WalletInteractiveClient {
@@ -75,6 +76,8 @@ public class WalletInteractiveClient {
 
 			} catch (NumberFormatException e) {
 				System.out.println("ERROR: Only numbers are allowed!");
+			} catch (InvalidNumberException e) {
+				System.out.println(e.getMessage());
 			}
 
 			//System.out.println("");

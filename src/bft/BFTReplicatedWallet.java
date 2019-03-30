@@ -1,12 +1,12 @@
 package bft;
 
 
-import wallet.Wallet;
+import rest.DistributedWallet;
 
-public class BFTReplicatedWallet implements Wallet {
+public class BFTReplicatedWallet implements DistributedWallet {
 
 	BFTWalletServer server;
-	Wallet wallet;
+	DistributedWallet wallet;
 	int id;
 
 	public BFTReplicatedWallet(int id) {
@@ -17,17 +17,17 @@ public class BFTReplicatedWallet implements Wallet {
 	}
 
 	@Override
-	public int createMoney(String who, int amount) {
+	public BFTReply createMoney(String who, int amount) {
 		return wallet.createMoney(who, amount);
 	}
 
 	@Override
-	public boolean transfer(String from, String to, int amount) {
+	public BFTReply transfer(String from, String to, int amount) {
 		return wallet.transfer(from, to, amount);
 	}
 
 	@Override
-	public int currentAmount(String who) {
+	public BFTReply currentAmount(String who) {
 		return wallet.currentAmount(who); // TODO: pedir directamente ao server?
 	}
 

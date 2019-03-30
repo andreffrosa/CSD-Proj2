@@ -28,7 +28,6 @@ public class RESTWalletServer {
 
 		System.setProperty("java.net.preferIPv4Stack", "true");
 
-		// TODO: É preciso?
 		System.setProperty("javax.net.ssl.keyStore",  SERVER_KEYSTORE);
 		System.setProperty("javax.net.ssl.keyStorePassword", SERVER_KEYSTORE_PWD);
 		System.setProperty("javax.net.ssl.trustStore", SERVER_TRUSTSTORE);
@@ -40,30 +39,42 @@ public class RESTWalletServer {
 		}
 
 		int id = Integer.parseInt(args[0]);
-
-		int port = 8080 + id;
+		
+		boolean authenticate_client = false;
 		if( args.length > 1) {
-			port = Integer.parseInt(args[1]);
+			authenticate_client = Boolean.parseBoolean(args[1]);
+		}
+		
+		int port = 8080 + id;
+		if( args.length > 2) {
+			port = Integer.parseInt(args[2]);
 		}
 
 		URI baseUri = UriBuilder.fromUri("https://0.0.0.0/").port(port).build();
+		
+		if( authenticate_client ) {
+			ClientCertificateVerifier ccv = new ClientCertificateVerifier();
+			SSLContext ctx = ccv.init(SERVER_KEYSTORE, SERVER_KEYSTORE_PWD, SERVER_TRUSTSTORE, SERVER_TRUSTSTORE_PWD);
 
-		ClientCertificateVerifier ccv = new ClientCertificateVerifier();
-		SSLContext ctx = ccv.init(SERVER_KEYSTORE, SERVER_KEYSTORE_PWD, SERVER_TRUSTSTORE, SERVER_TRUSTSTORE_PWD);
+			HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
 
-		HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
+			ResourceConfig config = new ResourceConfig();
+			DistributedWallet wallet = new BFTReplicatedWallet(id);
+			config.register(wallet);
 
-		ResourceConfig config = new ResourceConfig();
-		DistributedWallet wallet = new BFTReplicatedWallet(id);
-		config.register(wallet);
+			HttpsServer server = (HttpsServer) JdkHttpServerFactory.createHttpServer(baseUri, config, ctx, false);
 
-		HttpsServer server = (HttpsServer) JdkHttpServerFactory.createHttpServer(baseUri, config, ctx, false);
+			ccv.configureHttps(server);
 
-		ccv.configureHttps(server);
+			server.start();
+		} else {
+			ResourceConfig config = new ResourceConfig();
+			config.register( new BFTReplicatedWallet(id) );
 
-		server.start();
+			JdkHttpServerFactory.createHttpServer( baseUri, config, SSLContext.getDefault());
+		}
 
-		System.out.println("REST Wallet Server ready @ " + baseUri);
+		System.out.println("REST Wallet Server ready @ " + baseUri + " Client Authentication: " + authenticate_client);
 	}
 
 }

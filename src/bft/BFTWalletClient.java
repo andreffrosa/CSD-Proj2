@@ -38,14 +38,14 @@ public class BFTWalletClient implements DistributedWallet {
 
 			byte[][] signatures = new byte[replies][];
 			int[] ids =  new int[replies];
-			byte[] ans = (byte[]) objIn.readObject();
+			byte[] content = (byte[]) objIn.readObject();
 
 			for(int i = 0; i < replies; i++) {
 				signatures[i] = (byte[]) objIn.readObject();
 				ids[i] = (int) objIn.readInt();
 			}
 
-			return new BFTReply(replies, ans, signatures, ids);
+			return new BFTReply(replies, content, signatures, ids);
 
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
@@ -71,7 +71,7 @@ public class BFTWalletClient implements DistributedWallet {
 				byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray()); 
 
 				return processReply(reply);
-			} catch (IOException e) {
+			} catch (IOException  e) {
 				throw new RuntimeException("Exception creating money: " + e.getMessage());
 			}
 

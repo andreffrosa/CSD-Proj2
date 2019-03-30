@@ -81,8 +81,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 				objOut.writeBoolean(result);
 				hasReply = true;
 
-				System.out
-				.println("(" + iterations + ") transfer(" + from + ", " + to + ", " + amount + ") : " + result);
+				System.out.println("(" + iterations + ") transfer(" + from + ", " + to + ", " + amount + ") : " + result);
 
 				// reply = new byte[]{(byte) (result?1:0)};
 				break;

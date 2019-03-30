@@ -97,7 +97,7 @@ public class RESTWalletClient implements Wallet {
 				throw new RuntimeException("WalletClient Create: " + response.getStatus());
 		});
 
-		if( balance.isValid() )
+		if( balance.validateSignatures() )
 			return balance.getReplyAsInt();
 		else
 			throw new RuntimeException("Replies are not valid!");
@@ -115,7 +115,7 @@ public class RESTWalletClient implements Wallet {
 				throw new RuntimeException("WalletClient Transfer: " + response.getStatus());
 		});
 
-		if( status.isValid() )
+		if( status.validateSignatures() )
 			return status.getReplyAsBoolean(); 
 		else
 			throw new RuntimeException("Replies are not valid!");
@@ -132,7 +132,7 @@ public class RESTWalletClient implements Wallet {
 				throw new RuntimeException("WalletClient currentAmount: " + response.getStatus());
 		});
 
-		if( balance.isValid() )
+		if( balance.validateSignatures() )
 			return balance.getReplyAsInt();
 		else
 			throw new RuntimeException("Replies are not valid!");

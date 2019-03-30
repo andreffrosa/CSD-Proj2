@@ -23,7 +23,8 @@ public class ReplyExtractor implements Extractor {
 			if(replies[i] != null) {
 				int id = replies[i].getOperationId();
 				boolean signed = replies[i].signed;
-				System.out.println(replies[i].serializedMessageSignature);
+				//System.out.println(replies[i].serializedMessageSignature);
+				System.out.println(new String(java.util.Base64.getEncoder().encode(new String(replies[i].serializedMessageSignature, replies[i].serializedMessageSignature.length).getBytes())));
 				int sender = replies[i].getSender();
 				System.out.println("id: " + id + " signed: " + signed + " sender: " + sender);
 				System.out.println(new String(java.util.Base64.getEncoder().encode(new String(replies[i].serializedMessage, replies[i].serializedMessage.length).getBytes())));
@@ -49,7 +50,7 @@ public class ReplyExtractor implements Extractor {
 			for( int i = 0; i < replies.length; i++ ) {
 				if(replies[i] != null) {
 					objOut.writeObject(replies[i].serializedMessageSignature);
-					objOut.writeInt(replies[i].getId());
+					objOut.writeInt(replies[i].getSender());
 				}
 			}
 			objOut.flush();

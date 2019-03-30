@@ -81,6 +81,13 @@
 
 	<dependencyManagement>
 		<dependencies>
+			<!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-nop -->
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-nop</artifactId>
+				<version>1.7.25</version>
+				<scope>test</scope>
+			</dependency>
 			<dependency>
 				<groupId>org.glassfish.jersey.core</groupId>
 				<artifactId>jersey-client</artifactId>
@@ -124,14 +131,13 @@
 			</dependency>
 			<!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-simple -->
 			<dependency>
-				<groupId>org.slf4j</groupId>
+				<groupId>unknown</groupId>
 				<artifactId>slf4j-simple</artifactId>
 				<version>1.7.2</version>
-				<scope>test</scope>
 			</dependency>
 			<!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
 			<dependency>
-				<groupId>org.slf4j</groupId>
+				<groupId>unknown</groupId>
 				<artifactId>slf4j-api</artifactId>
 				<version>1.8.0-beta4</version>
 			</dependency>
@@ -139,6 +145,11 @@
 				<groupId>javax.activation</groupId>
 				<artifactId>activation</artifactId>
 				<version>1.1</version>
+			</dependency>
+			<dependency>
+				<groupId>unknown</groupId>
+				<artifactId>slf4j-jdk14</artifactId>
+				<version>1.0</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

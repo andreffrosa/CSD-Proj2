@@ -33,6 +33,8 @@ public class BFTWalletServer extends DefaultRecoverable {
 		iterations = 0;
 
 		logger = Logger.getLogger(BFTWalletServer.class.getName());
+		
+		System.out.println(replica.getReplicaContext().getStaticConfiguration().getPublicKey().toString());
 	}
 
 	public static void main(String[] args) {

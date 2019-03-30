@@ -11,6 +11,8 @@ public class WalletClient {
 	
 	private Map<String, Entry<String, Double>> addresses; // PK -> (SK, €)
 	
+	
+	
 	public WalletClient() {
 		addresses = new HashMap<>();
 	}

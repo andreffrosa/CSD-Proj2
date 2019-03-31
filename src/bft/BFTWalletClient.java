@@ -4,9 +4,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.util.List;
 
 import bft.BFTWalletRequestType;
 import bftsmart.tom.ServiceProxy;
+import wallet.Transaction;
 
 public class BFTWalletClient {
 
@@ -29,6 +31,24 @@ public class BFTWalletClient {
 			objOut.writeUTF(to);
 			objOut.writeDouble(amount);
 			objOut.writeUTF(signature);
+
+			objOut.flush();
+			byteOut.flush();
+
+			byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
+			
+			return reply;
+		} catch (IOException e) {
+			throw new RuntimeException("Exception transfering money: " + e.getMessage());
+		} 
+	}
+	
+	public byte[] atomicTransfer(List<Transaction> transactions) {
+		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
+
+			objOut.writeObject(BFTWalletRequestType.ATOMIC_TRANSFER_MONEY);
+			objOut.writeObject(transactions);
 
 			objOut.flush();
 			byteOut.flush();

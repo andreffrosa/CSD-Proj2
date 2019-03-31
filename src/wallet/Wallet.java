@@ -1,5 +1,6 @@
 package wallet;
 
+import java.util.List;
 import java.util.Map;
 
 public interface Wallet {
@@ -8,6 +9,11 @@ public interface Wallet {
 	 * 
 	 * */
 	boolean transfer( String from, String to, double amount, String signature ) throws InvalidNumberException;
+	
+	/**
+	 * 
+	 * */
+	boolean atomicTransfer( List<Transaction> transactions ) throws InvalidNumberException;
 
 	/**
 	 * 

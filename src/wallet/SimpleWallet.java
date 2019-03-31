@@ -16,15 +16,15 @@ public class SimpleWallet implements Wallet {
 		accounts = new HashMap<>();
 		admins = loadAdmins("");
 	}
-	
+
 	private List<String> loadAdmins(String path) {
 		List<String> admins = new ArrayList<>(1);
-		
+
 		//TODO: Fazer load dos admins
-		
+
 		//temp
 		admins.add("god");
-		
+
 		return admins;
 	}
 
@@ -46,17 +46,17 @@ public class SimpleWallet implements Wallet {
 	private boolean isAdmin(String address) {
 		return admins.contains(address);
 	}
-	
+
 	private boolean validateSignature(String from, String to, double amount, String signature) {
 		byte[] message = (from + to + amount).getBytes(); // Assinar um hash ou não vale a pena?
 		boolean valid = Cryptography.validateSignature(message, signature, from);
-		
+
 		// temp
 		if(from.equals("god"))
 			valid = true;
-		
+
 		System.out.println("Signature is " + valid);
-		
+
 		return valid;
 	}
 
@@ -108,6 +108,42 @@ public class SimpleWallet implements Wallet {
 	@Override
 	public Map<String, Double> ledger() {
 		return new HashMap<>(accounts);
+	}
+
+	@Override
+	public boolean atomicTransfer(List<Transaction> transactions) throws InvalidNumberException {
+
+		Map<String, Double> temp = new HashMap<>(accounts); // Backup
+
+		int counter = 1;
+		
+		boolean result = true;
+		try {
+			for(Transaction t : transactions) {
+
+				// Correct
+				/*if( t.isValid() ) {
+					result = this.transfer(t.getFrom(), t.getTo(), t.getAmount(), t.getSignature());
+				} else {
+					result = false;
+				}*/
+				
+				//temp
+				result = this.transfer(t.getFrom(), t.getTo(), t.getAmount(), t.getSignature());
+				
+				System.out.println("Transction " + counter++ + " " + result);
+
+				if(!result) {
+					accounts = temp; // Rollback
+					break;
+				}
+			}
+		} catch(InvalidNumberException e) {
+			accounts = temp; // Rollback
+			throw e;
+		}
+
+		return result;
 	}
 
 }

@@ -2,12 +2,15 @@ package wallet.client;
 
 import java.io.Console;
 import java.security.KeyPair;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import rest.RESTWalletClient;
 import utils.Cryptography;
 import wallet.InvalidNumberException;
+import wallet.Transaction;
 import wallet.Wallet;
 
 public class WalletInteractiveClient {
@@ -18,7 +21,9 @@ public class WalletInteractiveClient {
 		System.out.println("\t 0 : Help");
 		//System.out.println("\t 1 : Create Money");
 		System.out.println("\t 1 : Transfer");
-		System.out.println("\t 2 : Current Money");
+		System.out.println("\t 2 : AtomicTransfer");
+		System.out.println("\t 3 : Current Money");
+		System.out.println("\t 4 : Check Ledger");
 	}
 
 	public static void main(String[] args) {
@@ -81,12 +86,27 @@ public class WalletInteractiveClient {
 					System.out.println("--> Status: " + status);
 					break;
 				case 2:
+					System.out.println("\tAtomic Transfer");
+					int n_tx = Integer.parseInt(console.readLine("\tnumber of transactions: ").trim());
+					List<Transaction> transactions = new ArrayList<>(n_tx);
+					for(int i = 0; i < n_tx; i++) {
+						from = console.readLine("\tfrom: ").trim();
+						to = console.readLine("\tto: ").trim();
+						amount = Double.parseDouble(console.readLine("\tamount: ").trim());
+						Transaction t = new Transaction(from, to, amount, privateKey);
+						transactions.add(t);
+						System.out.println("\tsignature: " + t.getSignature());
+					}
+					status =  wallet.atomicTransfer(transactions);
+					System.out.println("--> Status: " + status);
+					break;
+				case 3:
 					System.out.println("\tCurrent Money");
 					who = console.readLine("\twho: ").trim();
 					balance =  wallet.balance(who);
 					System.out.println("--> Balance: " + balance + "€");
 					break;
-				case 3:
+				case 4:
 					System.out.println("\tLedger");
 					Map<String, Double> ledger =  wallet.ledger();
 					for( Entry<String, Double> e : ledger.entrySet() ) {

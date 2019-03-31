@@ -22,10 +22,14 @@ import javax.net.ssl.SSLSession;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 
+import com.google.gson.GsonBuilder;
+
 import bft.BFTReply;
+import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
 import rest.entities.TransferRequest;
 import wallet.InvalidNumberException;
+import wallet.Transaction;
 import wallet.Wallet;
 
 public class RESTWalletClient implements Wallet {
@@ -139,6 +143,36 @@ public class RESTWalletClient implements Wallet {
 				return (byte[]) response.readEntity(byte[].class);
 			} else
 				throw new RuntimeException("WalletClient Transfer: " + response.getStatus());
+		});
+
+		BFTReply r = processReply(result);
+
+		if( r != null ) {
+			if( r.validateSignatures() )
+				return r.getReplyAsBoolean();
+		}
+		throw new RuntimeException("Replies are not valid!");
+	}
+	
+	@Override
+	public boolean atomicTransfer(List<Transaction> transactions) throws InvalidNumberException {
+		
+		AtomicTransferRequest request = new AtomicTransferRequest(transactions);
+
+		System.out.println(transactions.toString());
+		System.out.println(request.transactions.toString());
+		System.out.println(request.deserialize().toString());
+		
+		byte[] result = processRequest((location) -> {			
+			Response response = client.target(location).path(DistributedWallet.PATH + "/atomicTransfer/")
+					.request().post(Entity.entity(request, MediaType.APPLICATION_JSON));
+			
+			System.out.println(response.toString());
+
+			if (response.getStatus() == 200) {
+				return (byte[]) response.readEntity(byte[].class);
+			} else
+				throw new RuntimeException("WalletClient atomicTransfer: " + response.getStatus());
 		});
 
 		BFTReply r = processReply(result);

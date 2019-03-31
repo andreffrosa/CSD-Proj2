@@ -8,6 +8,7 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -17,6 +18,7 @@ import bftsmart.tom.ServiceReplica;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
 import wallet.InvalidNumberException;
 import wallet.SimpleWallet;
+import wallet.Transaction;
 import wallet.Wallet;
 
 public class BFTWalletServer extends DefaultRecoverable {
@@ -70,6 +72,17 @@ public class BFTWalletServer extends DefaultRecoverable {
 				hasReply = true;
 
 				System.out.println("(" + iterations + ") transfer(" + from + ", " + to + ", " + amount + ") : " + result);
+
+				break;
+			case ATOMIC_TRANSFER_MONEY:
+				@SuppressWarnings("unchecked") List<Transaction> transactions = (List<Transaction>) objIn.readObject();
+
+				result = wallet.atomicTransfer(transactions);
+
+				objOut.writeBoolean(result);
+				hasReply = true;
+
+				System.out.println("(" + iterations + ") atomicTransfer(...) : " + result);
 
 				break;
 			case CURRENT_BALANCE:

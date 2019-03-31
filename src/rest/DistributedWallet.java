@@ -8,6 +8,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import bft.BFTReply;
+import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
 import rest.entities.TransferRequest;
 import wallet.InvalidNumberException;
@@ -25,6 +26,12 @@ public interface DistributedWallet {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	byte[] transfer(TransferRequest request) throws InvalidNumberException;
+	
+	@POST
+	@Path("/atomicTransfer")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_OCTET_STREAM)
+	byte[] atomicTransfer(AtomicTransferRequest request) throws InvalidNumberException;
 
 	@POST
 	@Path("/balance")

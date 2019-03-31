@@ -1,51 +1,94 @@
 package wallet;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import utils.Cryptography;
 
 public class SimpleWallet implements Wallet {
 
-	private Map<String, Integer> accounts;
+	private Map<String, Double> accounts;
+	private List<String> admins;
 
 	public SimpleWallet() {
 		accounts = new HashMap<>();
+		admins = loadAdmins("");
+	}
+	
+	private List<String> loadAdmins(String path) {
+		List<String> admins = new ArrayList<>(1);
+		
+		//TODO: Fazer load dos admins
+		
+		//temp
+		admins.add("god");
+		
+		return admins;
 	}
 
-	@Override
-	public int createMoney(String who, int amount) {
-		Integer old = accounts.get(who);
+	private double createMoney(String who, double amount) {
+		Double old = accounts.get(who);
 		if( old == null ) {
-			if(amount > 0)
+			if(amount > 0.0)
 				accounts.put(who, amount);
 
 			return amount;
 		} else {
-			if(amount > 0)
+			if(amount > 0.0)
 				accounts.put(who, old + amount);
 
 			return old + amount;
 		}
 	}
 
-	@Override
-	public boolean transfer(String from, String to, int amount) throws InvalidNumberException {
+	private boolean isAdmin(String address) {
+		return admins.contains(address);
+	}
+	
+	private boolean validateSignature(String from, String to, double amount, String signature) {
+		byte[] message = (from + to + amount).getBytes(); // Assinar um hash ou não vale a pena?
+		boolean valid = Cryptography.validateSignature(message, signature, from);
 		
+		// temp
+		if(from.equals("god"))
+			valid = true;
+		
+		System.out.println("Signature is " + valid);
+		
+		return valid;
+	}
+
+	@Override
+	public boolean transfer(String from, String to, double amount, String signature) throws InvalidNumberException {
+
 		if( amount < 0 )
 			throw new InvalidNumberException("Transfered amount cannot be negative");
-			
-		Integer from_balance = accounts.get(from);
 
-		if( from_balance != null ) {
-			if( from_balance.intValue() >= amount ) {
-				int new_balance = from_balance.intValue() - amount;
+		Double from_balance = accounts.get(from);
 
-				if(new_balance > 0)
-					accounts.put(from, new_balance);
-				else
-					accounts.remove(from);
-
+		// If the signature is valid
+		if( validateSignature(from, to,amount, signature) ) {
+			// If the transaction came from an admin
+			if(isAdmin(from)) {
 				createMoney(to, amount);
 				return true;
+			} else {
+				if( from_balance != null ) {
+					// If there's enough money in the account
+					if( from_balance.intValue() >= amount ) {
+						double new_balance = from_balance.doubleValue() - amount;
+
+						if(new_balance > 0)
+							accounts.put(from, new_balance);
+						else
+							accounts.remove(from);
+
+						createMoney(to, amount);
+						return true;
+					}
+				}
 			}
 		}
 
@@ -53,13 +96,18 @@ public class SimpleWallet implements Wallet {
 	}
 
 	@Override
-	public int currentAmount(String who) {
-		Integer balance = accounts.get(who);
+	public double balance(String who) {
+		Double balance = accounts.get(who);
 
 		if(balance == null)
-			return 0;
+			return 0.0;
 
-		return balance.intValue();
+		return balance.doubleValue();
+	}
+
+	@Override
+	public Map<String, Double> ledger() {
+		return new HashMap<>(accounts);
 	}
 
 }

@@ -1,8 +1,13 @@
 package rest;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,6 +23,9 @@ import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 
 import bft.BFTReply;
+import rest.entities.BalanceRequest;
+import rest.entities.TransferRequest;
+import wallet.InvalidNumberException;
 import wallet.Wallet;
 
 public class RESTWalletClient implements Wallet {
@@ -85,57 +93,108 @@ public class RESTWalletClient implements Wallet {
 		return null;
 	}
 
-	@Override
-	public int createMoney(String who, int amount) {
+	private BFTReply processReply( byte[] reply ) {
+		
+		if (reply.length == 0) {
+			return null;
+		}
 
-		BFTReply balance = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + "/create/").queryParam("who", who).queryParam("amount", amount).request().post(Entity.entity(amount, MediaType.APPLICATION_JSON));
+		try (ByteArrayInputStream byteIn = new ByteArrayInputStream(reply);
+				ObjectInput objIn = new ObjectInputStream(byteIn)) {
 
-			if (response.getStatus() == 200) {
-				return (BFTReply) response.readEntity(BFTReply.class);
-			} else
-				throw new RuntimeException("WalletClient Create: " + response.getStatus());
-		});
+			int replies = objIn.readInt();
 
-		if( balance.validateSignatures() )
-			return balance.getReplyAsInt();
-		else
-			throw new RuntimeException("Replies are not valid!");
+			byte[][] signatures = new byte[replies][];
+			int[] ids =  new int[replies];
+			byte[] content = (byte[]) objIn.readObject();
+
+			for(int i = 0; i < replies; i++) {
+				signatures[i] = (byte[]) objIn.readObject();
+				ids[i] = (int) objIn.readInt();
+			}
+
+			return new BFTReply(replies, content, signatures, ids);
+
+		} catch (IOException | ClassNotFoundException e) {
+			e.printStackTrace();
+			return null;
+		}
 	}
-
+	
 	@Override
-	public boolean transfer(String from, String to, int amount) {
-
-		BFTReply status = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + "/transfer/").queryParam("from", from).queryParam("to", to).queryParam("amount", amount).request().post(Entity.entity(amount, MediaType.APPLICATION_JSON));
+	public boolean transfer(String from, String to, double amount, String signature) throws InvalidNumberException {
+		
+		if( amount < 0 )
+			throw new InvalidNumberException("Transfered amount cannot be negative");
+		
+		TransferRequest request = new TransferRequest(from, to, amount, signature);
+		
+		byte[] result = processRequest((location) -> {			
+			Response response = client.target(location).path(DistributedWallet.PATH + "/transfer/")
+					.request().post(Entity.entity(request, MediaType.APPLICATION_JSON));
+			
+			System.out.println(response.toString());
 
 			if (response.getStatus() == 200) {
-				return (BFTReply) response.readEntity(BFTReply.class);
+				return (byte[]) response.readEntity(byte[].class);
 			} else
 				throw new RuntimeException("WalletClient Transfer: " + response.getStatus());
 		});
 
-		if( status.validateSignatures() )
-			return status.getReplyAsBoolean(); 
-		else
-			throw new RuntimeException("Replies are not valid!");
+		BFTReply r = processReply(result);
+
+		if( r != null ) {
+			if( r.validateSignatures() )
+				return r.getReplyAsBoolean();
+		}
+		throw new RuntimeException("Replies are not valid!");
 	}
 
 	@Override
-	public int currentAmount(String who) {
-		BFTReply balance = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + "/" + who + "/").request().get();
+	public double balance(String who) {
+		
+		BalanceRequest request = new BalanceRequest(who);
+		
+		byte[] reply = processRequest((location) -> {
+			Response response = client.target(location).path(DistributedWallet.PATH + "/balance/")
+					.request().post(Entity.entity(request, MediaType.APPLICATION_JSON));
 
 			if (response.getStatus() == 200) {
-				return (BFTReply) response.readEntity(BFTReply.class);
+				return (byte[]) response.readEntity(byte[].class);
 			} else
 				throw new RuntimeException("WalletClient currentAmount: " + response.getStatus());
 		});
 
-		if( balance.validateSignatures() )
-			return balance.getReplyAsInt();
-		else
-			throw new RuntimeException("Replies are not valid!");
+		BFTReply r = processReply(reply);
+		
+		if( r != null ) {
+			if( r.validateSignatures() )
+				return r.getReplyAsDouble();
+		}
+		throw new RuntimeException("Replies are not valid!");
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public Map<String, Double> ledger() {
+		
+		byte[] reply = processRequest((location) -> {
+			Response response = client.target(location).path(DistributedWallet.PATH + "/ledger/")
+					.request().get();
+
+			if (response.getStatus() == 200) {
+				return (byte[]) response.readEntity(byte[].class);
+			} else
+				throw new RuntimeException("WalletClient ledger: " + response.getStatus());
+		});
+
+		BFTReply r = processReply(reply);
+		
+		if( r != null ) {
+			if( r.validateSignatures() )
+				return (Map<String, Double>) r.getReplyAsObject();
+		}
+		throw new RuntimeException("Replies are not valid!");
 	}
 
 }

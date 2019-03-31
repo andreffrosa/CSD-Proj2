@@ -2,33 +2,33 @@ package bft;
 
 
 import rest.DistributedWallet;
+import rest.entities.BalanceRequest;
+import rest.entities.TransferRequest;
+import wallet.Wallet;
 
 public class BFTReplicatedWallet implements DistributedWallet {
 
 	BFTWalletServer server;
-	DistributedWallet wallet;
-	int id;
+	BFTWalletClient wallet;
 
 	public BFTReplicatedWallet(int id) {
-		wallet = new BFTWalletClient(id /*+ 1000*/);
-		new Thread( () -> {server = new BFTWalletServer(id); }).start(); // TODO: Assim ou pode ter o mesmo id?
-		
-		this.id = id;
+		wallet = new BFTWalletClient(id);
+		new Thread( () -> {server = new BFTWalletServer(id); }).start();
 	}
 
 	@Override
-	public BFTReply createMoney(String who, int amount) {
-		return wallet.createMoney(who, amount);
+	public byte[] transfer(TransferRequest request) {
+		return wallet.transfer(request.from, request.to, request.amount, request.signature);
 	}
 
 	@Override
-	public BFTReply transfer(String from, String to, int amount) {
-		return wallet.transfer(from, to, amount);
+	public byte[] balance(BalanceRequest request) {
+		return wallet.balance(request.who);
 	}
 
 	@Override
-	public BFTReply currentAmount(String who) {
-		return wallet.currentAmount(who); // TODO: pedir directamente ao server?
+	public byte[] ledger() {
+		return wallet.ledger();
 	}
 
 }

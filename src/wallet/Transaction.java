@@ -1,5 +1,7 @@
 package wallet;
 
+import utils.Cryptography;
+
 public class Transaction {
 	
 	private String from;
@@ -11,12 +13,12 @@ public class Transaction {
 		this.from = from;
 		this.to = to;
 		this.amount = amount;
-		this.signature = sign();
+		this.signature = sign(privateKey);
 	}
 
-	private String sign() {
-		// TODO
-		String signature = ""; //from + to + amount
+	private String sign(String privateKey) {
+		byte[] data = (from + to + amount).getBytes();
+		String signature = Cryptography.sign(data, privateKey);
 		return signature;
 	}
 	
@@ -37,8 +39,8 @@ public class Transaction {
 	}
 	
 	boolean isValid() {
-		// TODO
-		return false;
+		byte[] data = (from + to + amount).getBytes();
+		return Cryptography.validateSignature(data, signature, from);
 	}
 
 }

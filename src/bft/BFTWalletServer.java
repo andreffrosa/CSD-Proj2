@@ -8,6 +8,7 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,19 +23,18 @@ public class BFTWalletServer extends DefaultRecoverable {
 
 	private Wallet wallet;
 	private int iterations;
-	@SuppressWarnings("unused")
 	private ServiceReplica replica;
 	private Logger logger;
 
 	public BFTWalletServer(int id) {
 		replica = new ServiceReplica(id, this, this);
-		wallet = new SimpleWallet(); // aqui?
+		wallet = new SimpleWallet();
 
 		iterations = 0;
 
 		logger = Logger.getLogger(BFTWalletServer.class.getName());
-		
-		System.out.println(replica.getReplicaContext().getStaticConfiguration().getPublicKey().toString());
+
+		System.out.println("publicKey: " + java.util.Base64.getEncoder().encodeToString(replica.getReplicaContext().getStaticConfiguration().getPublicKey().getEncoded()));
 	}
 
 	public static void main(String[] args) {
@@ -48,8 +48,6 @@ public class BFTWalletServer extends DefaultRecoverable {
 	private byte[] executeSingle(byte[] command, MessageContext msgCtxs) {
 		byte[] reply = null;
 		boolean hasReply = false;
-		String who, from, to;
-		int amount;
 
 		iterations++;
 
@@ -60,42 +58,38 @@ public class BFTWalletServer extends DefaultRecoverable {
 
 			BFTWalletRequestType reqType = (BFTWalletRequestType) objIn.readObject();
 			switch (reqType) {
-			case CREATE_MONEY:
-				who = objIn.readUTF();
-				amount = objIn.readInt();
-
-				int balance = wallet.createMoney(who, amount);
-
-				objOut.writeInt(balance);
-				hasReply = true;
-
-				System.out.println("(" + iterations + ") createmoney(" + who + ", " + amount + ") : " + balance);
-
-				// reply = new Integer() // return null
-				break;
 			case TRANSFER_MONEY:
-				from = objIn.readUTF();
-				to = objIn.readUTF();
-				amount = objIn.readInt();
+				String from = objIn.readUTF();
+				String to = objIn.readUTF();
+				double amount = objIn.readDouble();
+				String signature = objIn.readUTF();
 
-				boolean result = wallet.transfer(from, to, amount);
+				boolean result = wallet.transfer(from, to, amount, signature);
 
 				objOut.writeBoolean(result);
 				hasReply = true;
 
 				System.out.println("(" + iterations + ") transfer(" + from + ", " + to + ", " + amount + ") : " + result);
 
-				// reply = new byte[]{(byte) (result?1:0)};
 				break;
-			case CURRENT_AMOUNT:
-				who = objIn.readUTF();
+			case CURRENT_BALANCE:
+				String who = objIn.readUTF();
 
-				balance = wallet.currentAmount(who);
+				double balance = wallet.balance(who);
 
-				objOut.writeInt(balance);
+				objOut.writeDouble(balance);
 				hasReply = true;
 
-				System.out.println("(" + iterations + ") currentAmount(" + who + ") : " + balance);
+				System.out.println("(" + iterations + ") balance(" + who + ") : " + balance);
+
+				break;
+			case GET_LEDGER:
+				Map<String, Double> ledger = wallet.ledger();
+
+				objOut.writeObject(ledger);
+				hasReply = true;
+
+				System.out.println("(" + iterations + ") ledger() : " + ledger.size());
 
 				break;
 			}
@@ -104,10 +98,6 @@ public class BFTWalletServer extends DefaultRecoverable {
 				objOut.flush();
 				byteOut.flush();
 				reply = byteOut.toByteArray();
-				/*objOut.write(TOMUtil.signMessage(replica.getReplicaContext().getStaticConfiguration().getPrivateKey(), reply));
-				objOut.flush();
-				byteOut.flush();
-				reply = byteOut.toByteArray();*/
 			} else {
 				reply = new byte[0];
 			}
@@ -124,8 +114,6 @@ public class BFTWalletServer extends DefaultRecoverable {
 
 		byte[] reply = null;
 		boolean hasReply = false;
-		String who;
-		int balance;
 
 		// iterations++;
 
@@ -136,15 +124,24 @@ public class BFTWalletServer extends DefaultRecoverable {
 			BFTWalletRequestType reqType = (BFTWalletRequestType) objIn.readObject();
 
 			switch (reqType) {
-			case CURRENT_AMOUNT:
-				who = objIn.readUTF();
+			case CURRENT_BALANCE:
+				String who = objIn.readUTF();
 
-				balance = wallet.currentAmount(who);
+				double balance = wallet.balance(who);
 
-				objOut.writeInt(balance);
+				objOut.writeDouble(balance);
 				hasReply = true;
 
 				System.out.println("(" + iterations + ") currentAmount(" + who + ") : " + balance);
+
+				break;
+			case GET_LEDGER:
+				Map<String, Double> ledger = wallet.ledger();
+
+				objOut.writeObject(ledger);
+				hasReply = true;
+
+				System.out.println("(" + iterations + ") ledger() : " + ledger.size());
 
 				break;
 			default:
@@ -154,10 +151,6 @@ public class BFTWalletServer extends DefaultRecoverable {
 				objOut.flush();
 				byteOut.flush();
 				reply = byteOut.toByteArray();
-				/*objOut.write(TOMUtil.signMessage(replica.getReplicaContext().getStaticConfiguration().getPrivateKey(), reply));
-				objOut.flush();
-				byteOut.flush();
-				reply = byteOut.toByteArray();*/
 			} else {
 				reply = new byte[0];
 			}
@@ -194,10 +187,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 	public byte[][] appExecuteBatch(byte[][] commands, MessageContext[] msgCtxs, boolean fromConsensus) {
 		byte[][] replies = new byte[commands.length][];
 		for (int i = 0; i < commands.length; i++) {
-			//if (msgCtxs != null && msgCtxs[i] != null) {
 			replies[i] = executeSingle(commands[i], msgCtxs[i]);
-			//} else
-			//replies[i] = executeSingle(commands[i], null);
 		}
 
 		return replies;

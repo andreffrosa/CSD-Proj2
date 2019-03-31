@@ -1,4 +1,4 @@
-package wallet;
+package wallet.client;
 
 import java.util.AbstractMap;
 import java.util.HashMap;
@@ -6,6 +6,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import wallet.Transaction;
 
 public class WalletClient {
 	

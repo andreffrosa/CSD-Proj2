@@ -27,8 +27,14 @@ import bftsmart.tom.util.KeyLoader;
 import bftsmart.tom.util.TOMUtil;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class BFTReply {
+public class BFTReply implements java.io.Serializable {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	
+	
 	private int n_replies;
 	private byte[] reply;
 	private byte[][] signatures;
@@ -115,6 +121,16 @@ public class BFTReply {
 			throw new RuntimeException(e.getMessage());
 		}
 	}
+	
+	public double getReplyAsDouble() {
+		try (ByteArrayInputStream byteIn = new ByteArrayInputStream(reply);
+				ObjectInput objIn = new ObjectInputStream(byteIn)) {
+
+			return objIn.readDouble();
+		} catch(IOException e) {
+			throw new RuntimeException(e.getMessage());
+		}
+	}
 
 	public boolean getReplyAsBoolean() {
 		try (ByteArrayInputStream byteIn = new ByteArrayInputStream(reply);
@@ -122,6 +138,16 @@ public class BFTReply {
 
 			return objIn.readBoolean();
 		} catch(IOException e) {
+			throw new RuntimeException(e.getMessage());
+		}
+	}
+	
+	public Object getReplyAsObject() {
+		try (ByteArrayInputStream byteIn = new ByteArrayInputStream(reply);
+				ObjectInput objIn = new ObjectInputStream(byteIn)) {
+
+			return objIn.readObject();
+		} catch(IOException | ClassNotFoundException e) {
 			throw new RuntimeException(e.getMessage());
 		}
 	}

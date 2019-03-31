@@ -3,4 +3,4 @@ CONFIG='-Dlogback.configurationFile="./config/logback.xml"'
 
 CP="-cp target/classes/:target/dependency/*"
 
-$JAVA $CONFIG $CP rest.WalletInteractiveClient $@
+$JAVA $CONFIG $CP wallet.client.WalletInteractiveClient $@

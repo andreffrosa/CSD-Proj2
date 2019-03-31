@@ -1,11 +1,22 @@
 package wallet;
 
+import java.util.Map;
+
 public interface Wallet {
 
-	int createMoney( String who, int amount );
+	/**
+	 * 
+	 * */
+	boolean transfer( String from, String to, double amount, String signature ) throws InvalidNumberException;
 
-	boolean transfer( String from, String to, int amount ) throws InvalidNumberException;
-
-	int currentAmount( String who );
+	/**
+	 * 
+	 * */
+	double balance( String who );
+	
+	/**
+	 * 
+	 * */
+	Map<String, Double> ledger();
 
 }

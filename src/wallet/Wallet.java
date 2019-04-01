@@ -8,12 +8,12 @@ public interface Wallet {
 	/**
 	 * 
 	 * */
-	boolean transfer( String from, String to, double amount, String signature ) throws InvalidNumberException;
+	boolean transfer( Transaction transaction ); //throws InvalidNumberException;
 	
 	/**
 	 * 
 	 * */
-	boolean atomicTransfer( List<Transaction> transactions ) throws InvalidNumberException;
+	boolean atomicTransfer( List<Transaction> transactions ); // throws InvalidNumberException;
 
 	/**
 	 * 

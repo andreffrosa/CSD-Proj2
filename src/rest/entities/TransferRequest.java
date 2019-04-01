@@ -1,18 +1,23 @@
 package rest.entities;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import wallet.Transaction;
+
 public class TransferRequest {
 	
-	public String from;
-	public String to;
-	public double amount;
-	public String signature;
+	public String transaction;
 	
 	public TransferRequest() {}
 	
-	public TransferRequest(String from, String to, double amount, String signature) {
-		this.from = from;
-		this.to = to;
-		this.amount = amount;
-		this.signature = signature;
+	public TransferRequest(Transaction transaction) {
+		Gson gson = new GsonBuilder().create();
+		this.transaction = gson.toJson(transaction);
+	}
+	
+	public Transaction deserialize() {
+		Gson gson = new GsonBuilder().create();
+		return gson.fromJson(transaction, Transaction.class);
 	}
 }

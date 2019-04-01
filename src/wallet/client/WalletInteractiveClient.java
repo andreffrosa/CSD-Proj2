@@ -46,6 +46,9 @@ public class WalletInteractiveClient {
 		double amount, balance;
 
 		help();
+		
+		String admin_privkey = "MHsCAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQEEYTBfAgEBBBgDXK95Al4rQHdvRSTP8D7GfNYMmPq9z02gCgYIKoZIzj0DAQGhNAMyAARA4Llh28RJRmd6PRbY3TRQLt5Sx94RRhavrLdtCRk8U3f5vMpnGpVEY4QZ7v7esPk=";
+		String admin_pubkey = "MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEQOC5YdvESUZnej0W2N00UC7eUsfeEUYWr6y3bQkZPFN3+bzKZxqVRGOEGe7+3rD5";
 
 		while(!exit) {
 			/*System.out.println("Available operations: ");
@@ -79,10 +82,10 @@ public class WalletInteractiveClient {
 					String from = console.readLine("\tfrom: ").trim();
 					String to = console.readLine("\tto: ").trim();
 					amount = Double.parseDouble(console.readLine("\tamount: ").trim());
-					String signature = Cryptography.sign((from+to+amount).getBytes(), privateKey);
-					System.out.println("\tsignature: " + signature);
-					//String signature = console.readLine("\tsignature: ").trim();
-					boolean status =  wallet.transfer(from, to, amount, signature);
+					String key = from.equals(admin_pubkey) ? admin_privkey : privateKey; // Temp
+					Transaction t = new Transaction(from, to, amount, key);
+					System.out.println("\tsignature: " + t.getSignature());
+					boolean status =  wallet.transfer(t);
 					System.out.println("--> Status: " + status);
 					break;
 				case 2:
@@ -93,7 +96,8 @@ public class WalletInteractiveClient {
 						from = console.readLine("\tfrom: ").trim();
 						to = console.readLine("\tto: ").trim();
 						amount = Double.parseDouble(console.readLine("\tamount: ").trim());
-						Transaction t = new Transaction(from, to, amount, privateKey);
+						key = from.equals(admin_pubkey) ? admin_privkey : privateKey; // Temp
+						t = new Transaction(from, to, amount, key);
 						transactions.add(t);
 						System.out.println("\tsignature: " + t.getSignature());
 					}
@@ -121,9 +125,9 @@ public class WalletInteractiveClient {
 
 			} catch (NumberFormatException e) {
 				System.out.println("ERROR: Only numbers are allowed!");
-			} catch (InvalidNumberException e) {
+			} /*catch (InvalidNumberException e) {
 				System.out.println(e.getMessage());
-			}
+			}*/
 
 			//System.out.println("");
 		}

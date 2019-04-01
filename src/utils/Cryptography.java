@@ -33,11 +33,11 @@ public class Cryptography {
 
 			kp = keyGen.generateKeyPair();
 			
-			System.out.println(kp.getPublic().getAlgorithm());
+			/*System.out.println(kp.getPublic().getAlgorithm());
 			System.out.println(kp.getPublic().getFormat());
 			
 			System.out.println(kp.getPrivate().getAlgorithm());
-			System.out.println(kp.getPrivate().getFormat());
+			System.out.println(kp.getPrivate().getFormat());*/
 		} catch(NoSuchAlgorithmException | NoSuchProviderException | InvalidAlgorithmParameterException e) {
 			e.printStackTrace();
 		}

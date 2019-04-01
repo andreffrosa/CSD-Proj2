@@ -22,15 +22,15 @@ public class BFTWalletClient {
 		serviceProxy.close();
 	}
 
-	public byte[] transfer(String from, String to, double amount, String signature) {
+	public byte[] transfer(Transaction t) {
 		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
 
 			objOut.writeObject(BFTWalletRequestType.TRANSFER_MONEY);
-			objOut.writeUTF(from);
-			objOut.writeUTF(to);
-			objOut.writeDouble(amount);
-			objOut.writeUTF(signature);
+			objOut.writeUTF(t.getFrom());
+			objOut.writeUTF(t.getTo());
+			objOut.writeDouble(t.getAmount());
+			objOut.writeUTF(t.getSignature());
 
 			objOut.flush();
 			byteOut.flush();

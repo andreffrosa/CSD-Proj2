@@ -13,15 +13,23 @@ public class Transaction implements Serializable {
 	private double amount;
 	private String signature;
 	
-	public Transaction(String from, String to, double amount, String privateKey) {
+	public Transaction(String from, String to, double amount, String privKey) {
+		this(from, to, amount, privKey, false);
+	}
+	
+	public Transaction(String from, String to, double amount, String privKeyOrSignature, boolean signed) {
 		this.from = from;
 		this.to = to;
 		this.amount = amount;
-		this.signature = sign(privateKey);
+		
+		if(signed)
+			this.signature = privKeyOrSignature; //signature
+		else
+			this.signature = sign(privKeyOrSignature); // privKey
 	}
 
 	private String sign(String privateKey) {
-		byte[] data = (from + to + amount).getBytes();
+		byte[] data = getDigest();
 		String signature = Cryptography.sign(data, privateKey);
 		return signature;
 	}
@@ -42,9 +50,15 @@ public class Transaction implements Serializable {
 		return signature;
 	}
 	
-	boolean isValid() {
-		byte[] data = (from + to + amount).getBytes();
-		return Cryptography.validateSignature(data, signature, from);
+	public byte[] getDigest() {
+		return (from + to + amount).getBytes();
+	}
+	
+	public boolean isValid() {
+		byte[] data = getDigest();
+		boolean validSignature = Cryptography.validateSignature(data, signature, from);
+		boolean validAmount = this.amount > 0.0;
+		return validSignature && validAmount;	
 	}
 
 }

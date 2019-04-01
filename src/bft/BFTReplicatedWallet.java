@@ -19,7 +19,7 @@ public class BFTReplicatedWallet implements DistributedWallet {
 
 	@Override
 	public byte[] transfer(TransferRequest request) throws InvalidNumberException {
-		return wallet.transfer(request.from, request.to, request.amount, request.signature);
+		return wallet.transfer(request.deserialize());
 	}
 	
 	@Override

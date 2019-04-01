@@ -1,5 +1,6 @@
 package wallet.client;
 
+import java.security.KeyPair;
 import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -7,66 +8,162 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import rest.RESTWalletClient;
+import utils.Cryptography;
 import wallet.Transaction;
+import wallet.Wallet;
 
 public class WalletClient {
-	
-	private Map<String, Entry<String, Double>> addresses; // PK -> (SK, €)
-	
-	
-	
+
+	private Map<String, String> to_receive_addresses; // PK -> (SK, €)
+	private Map<String, Entry<String, Double>> used_addresses; // PK -> (SK, €)
+
+	private Wallet wallet;
+
+	// Constructor
 	public WalletClient() {
-		addresses = new HashMap<>();
+		to_receive_addresses = new HashMap<>();
+		used_addresses = new HashMap<>();
+		
+		wallet = new RESTWalletClient(new String[] { "https://localhost:8080/", "https://localhost:8081/",
+				 "https://localhost:8082/", "https://localhost:8083/" });
 	}
-	
-	public void transfer(String to, double amount) {
-		
-		// agrupar €€ suficiente de vários endereços
-		List<Transaction> transactions = new LinkedList<>();
-		
-		double current_amount = 0;
-		for( Entry<String, Entry<String, Double>> e : addresses.entrySet() ) {
-			if( current_amount < amount ) {
-				String from = e.getKey();
-				double balance = e.getValue().getValue();
-				double temp_amount = Math.min(amount, balance);
-				String privateKey = e.getValue().getKey();
-				
-				transactions.add(new Transaction(from, to, temp_amount, privateKey));
-				current_amount += temp_amount;
-			} else
-				break;
-		}
-		
-		if( current_amount < amount ) {
-			throw new RuntimeException("Not enough money");
-		}
-		
-		// Fazer pedido REST enviando a lista de transações e esperar a resposta
+
+	public String generateNewAddress() {
+		KeyPair kp = Cryptography.genKeys();
+		String pubKey = Cryptography.getPublicKey(kp);
+		String privKey = Cryptography.getPrivateKey(kp);
+
+		to_receive_addresses.put(pubKey, privKey);
+
+		return pubKey;
 	}
-	
-	public String getKeyToRcv() {
+
+	public double checkReception(String pubKey) {
+		double balance = wallet.balance(pubKey);
 		
-		// Gerar novo par de chaves
-		String publicKey = "";
-		String privateKey = "";
-		
-		// Adicionar à lista de pares de chaves
-		addresses.put(publicKey, new AbstractMap.SimpleEntry<String, Double>(privateKey, 0.0));
-		
-		return publicKey;
-	}
-	
-	public double getBalance() {
-		double balance = 0;
-		for( Entry<String, Entry<String, Double>> e : addresses.entrySet() ) {
-			balance += e.getValue().getValue();
+		if(balance > 0.0) {
+			String privKey = to_receive_addresses.remove(pubKey);
+			if(privKey != null)
+				used_addresses.put(pubKey, new AbstractMap.SimpleEntry<String, Double>(privKey, balance));
 		}
 		
 		return balance;
 	}
-	
-	public Map<String, Entry<String, Double>> getAddresses() {
-		return null; // TODO
+
+	public boolean transfer(String to, double amount) {
+
+		// agrupar €€ suficiente de vários endereços
+		List<Transaction> transactions = new LinkedList<>();
+
+		Map<String, Entry<String, Double>> temp = new HashMap<>(used_addresses);
+		
+		double current_amount = 0;
+		for (Entry<String, Entry<String, Double>> e : used_addresses.entrySet()) {
+			if (current_amount < amount) {
+				String publicKey = e.getKey();
+				String privateKey = e.getValue().getKey();
+				double balance = e.getValue().getValue();
+				
+				double temp_amount = Math.min(amount - current_amount, balance);
+				
+				transactions.add(new Transaction(publicKey, to, temp_amount, privateKey));
+				
+				double account_new_balance = balance - temp_amount;
+				if( account_new_balance > 0 )
+					temp.put(publicKey, new AbstractMap.SimpleEntry<String, Double>(privateKey, account_new_balance));
+				else
+					temp.remove(publicKey);
+				
+				current_amount += temp_amount;
+			} else
+				break;
+		}
+
+		if (current_amount < amount) {
+			throw new RuntimeException("Not enough money");
+		}
+
+		// Fazer pedido REST enviando a lista de transações e esperar a resposta
+		boolean status = wallet.atomicTransfer(transactions);
+		
+		if(status)
+			used_addresses = temp;
+		
+		return status;
 	}
+	
+	public boolean transferFrom(String pubKey, String to, double amount) {
+		Entry<String, Double> e = used_addresses.get(pubKey);
+		
+		if( e != null ) {
+			String privKey = e.getKey();
+			double balance = e.getValue();
+			
+			if( balance >= amount ) {
+				Transaction t = new Transaction(pubKey, to, amount, privKey);
+				
+				if(wallet.transfer(t)) {
+					double new_balance = balance - amount;
+					if(new_balance > 0.0) {
+						used_addresses.put(pubKey, new AbstractMap.SimpleEntry<String, Double>(privKey, new_balance));
+					} else {
+						used_addresses.remove(pubKey);
+					}
+					
+					return true;
+				}
+			}
+		}
+		
+		return false;
+	}
+
+	public double getBalance() {
+		double balance = 0;
+		for (Entry<String, Entry<String, Double>> e : used_addresses.entrySet()) {
+			balance += e.getValue().getValue();
+		}
+		
+		Map<String, String> temp = new HashMap<>(to_receive_addresses);
+		for(Entry<String, String> e : temp.entrySet()) {
+			double amount = this.checkReception(e.getKey());
+			balance += amount;
+		}
+
+		return balance;
+	}
+
+	public Map<String, Entry<String, Double>> getAllAddresses() {
+		Map<String, Entry<String, Double>> addresses = new HashMap<>(used_addresses.size() + to_receive_addresses.size());
+		
+		addresses.putAll(used_addresses);
+		
+		for (Entry<String, String> e : to_receive_addresses.entrySet()) {
+			addresses.put(e.getKey(), new AbstractMap.SimpleEntry<String, Double>(e.getValue(), 0.0));
+		}
+		
+		return addresses;
+	}
+	
+	public boolean addKeys(String pubKey, String privKey, boolean checkBalance) {
+		
+		double balance = checkBalance ? wallet.balance(pubKey) : 0.0;
+		
+		boolean used_address = balance > 0.0;
+		
+		if( used_address ) {
+			used_addresses.put(pubKey, new AbstractMap.SimpleEntry<String, Double>(privKey, balance));
+		} else {
+			to_receive_addresses.put(pubKey, privKey);
+		}
+			
+		return used_address;
+	}
+	
+	/*public double refresh(String address) {
+		//TODO
+		
+		return wallet.balance(address);
+	}*/
 }

@@ -66,7 +66,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 				double amount = objIn.readDouble();
 				String signature = objIn.readUTF();
 
-				boolean result = wallet.transfer(from, to, amount, signature);
+				boolean result = wallet.transfer(new Transaction(from, to, amount, signature, true));
 
 				objOut.writeBoolean(result);
 				hasReply = true;
@@ -115,7 +115,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 				reply = new byte[0];
 			}
 
-		} catch (IOException | ClassNotFoundException | InvalidNumberException e) {
+		} catch (IOException | ClassNotFoundException /*| InvalidNumberException*/ e) {
 			logger.log(Level.SEVERE, "Ocurred during wallet operation execution", e);
 		}
 

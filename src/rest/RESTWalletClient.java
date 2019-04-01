@@ -42,8 +42,8 @@ public class RESTWalletClient implements Wallet {
 	private static final String CLIENT_TRUSTSTORE_PWD = "CSD1819";
 
 	private final int MAX_TRIES = 5;
-	private final int CONNECT_TIMEOUT = 15000;
-	private final int READ_TIMEOUT = 10000;
+	private final int CONNECT_TIMEOUT = 20000;
+	private final int READ_TIMEOUT = 25000;
 
 	// Private Variables
 	private Client client;
@@ -83,7 +83,7 @@ public class RESTWalletClient implements Wallet {
 			try {
 				return requestHandler.execute(servers.get(index));
 			} catch (ProcessingException e) {
-				if( e.getMessage().contains("java.net.ConnectException: Connection refused (Connection refused)") ) {
+				if( e.getMessage().contains("java.net.ConnectException")  /*|| e.getMessage().contains("java.net.SocketTimeoutException")*/ ) {
 					logger.log(Level.INFO, String.format("Error contacting server %s .... retry: %d", servers.get(index), current_try));
 					servers.remove(index); 
 				} else {
@@ -126,18 +126,21 @@ public class RESTWalletClient implements Wallet {
 	}
 	
 	@Override
-	public boolean transfer(String from, String to, double amount, String signature) throws InvalidNumberException {
+	public boolean transfer(Transaction transaction) {//throws InvalidNumberException {
 		
-		if( amount < 0 )
-			throw new InvalidNumberException("Transfered amount cannot be negative");
+		/*if( transaction.getAmount() < 0 )
+			throw new InvalidNumberException("Transfered amount cannot be negative");*/
 		
-		TransferRequest request = new TransferRequest(from, to, amount, signature);
+		if( !transaction.isValid() )
+			return false;
+		
+		TransferRequest request = new TransferRequest(transaction);
 		
 		byte[] result = processRequest((location) -> {			
 			Response response = client.target(location).path(DistributedWallet.PATH + "/transfer/")
 					.request().post(Entity.entity(request, MediaType.APPLICATION_JSON));
 			
-			System.out.println(response.toString());
+			//System.out.println(response.toString());
 
 			if (response.getStatus() == 200) {
 				return (byte[]) response.readEntity(byte[].class);
@@ -155,19 +158,15 @@ public class RESTWalletClient implements Wallet {
 	}
 	
 	@Override
-	public boolean atomicTransfer(List<Transaction> transactions) throws InvalidNumberException {
+	public boolean atomicTransfer(List<Transaction> transactions) {// throws InvalidNumberException {
 		
 		AtomicTransferRequest request = new AtomicTransferRequest(transactions);
-
-		System.out.println(transactions.toString());
-		System.out.println(request.transactions.toString());
-		System.out.println(request.deserialize().toString());
 		
 		byte[] result = processRequest((location) -> {			
 			Response response = client.target(location).path(DistributedWallet.PATH + "/atomicTransfer/")
 					.request().post(Entity.entity(request, MediaType.APPLICATION_JSON));
 			
-			System.out.println(response.toString());
+			//System.out.println(response.toString());
 
 			if (response.getStatus() == 200) {
 				return (byte[]) response.readEntity(byte[].class);

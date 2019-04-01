@@ -3,6 +3,9 @@ package wallet;
 import java.io.Serializable;
 
 import utils.Cryptography;
+import wallet.exceptions.InvalidAddressException;
+import wallet.exceptions.InvalidAmountException;
+import wallet.exceptions.InvalidSignatureException;
 
 public class Transaction implements Serializable {
 	
@@ -58,7 +61,27 @@ public class Transaction implements Serializable {
 		byte[] data = getDigest();
 		boolean validSignature = Cryptography.validateSignature(data, signature, from);
 		boolean validAmount = this.amount > 0.0;
-		return validSignature && validAmount;	
+		boolean validToAdress = Cryptography.validateAdress(to);
+		return validSignature && validToAdress  && validAmount;
+	}
+	
+	public boolean validate() throws InvalidAddressException, InvalidSignatureException, InvalidAmountException {
+		
+		if( !Cryptography.validateAdress(from) )
+			throw new InvalidAddressException(from + " is an invalid address");
+		
+		if( !Cryptography.validateAdress(to) )
+			throw new InvalidAddressException(to + " is an invalid address");
+		
+		if( !Cryptography.validateSignature(getDigest(), signature, from) )
+			throw new InvalidSignatureException("Invalid signature");
+		
+		if( this.amount < 0.0 )
+			throw new InvalidAmountException("Amount can't be negative");
+		else if( this.amount == 0.0 )
+			throw new InvalidAmountException("Amount can't be 0.0");
+		
+		return true;
 	}
 
 }

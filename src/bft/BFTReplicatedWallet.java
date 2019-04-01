@@ -5,7 +5,6 @@ import rest.DistributedWallet;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
 import rest.entities.TransferRequest;
-import wallet.InvalidNumberException;
 
 public class BFTReplicatedWallet implements DistributedWallet {
 
@@ -18,12 +17,12 @@ public class BFTReplicatedWallet implements DistributedWallet {
 	}
 
 	@Override
-	public byte[] transfer(TransferRequest request) throws InvalidNumberException {
+	public byte[] transfer(TransferRequest request) {
 		return wallet.transfer(request.deserialize());
 	}
 	
 	@Override
-	public byte[] atomicTransfer(AtomicTransferRequest request) throws InvalidNumberException {
+	public byte[] atomicTransfer(AtomicTransferRequest request) {
 		System.out.println("\noi\n");
 		return wallet.atomicTransfer(request.deserialize());
 	}

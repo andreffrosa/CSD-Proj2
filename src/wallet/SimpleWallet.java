@@ -4,12 +4,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import utils.Cryptography;
+import wallet.exceptions.InvalidAddressException;
+import wallet.exceptions.InvalidAmountException;
+import wallet.exceptions.InvalidSignatureException;
+import wallet.exceptions.NotEnoughMoneyException;
 
 public class SimpleWallet implements Wallet {
 
 	private static final String ADMIN_PUB_KEY = "MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEQOC5YdvESUZnej0W2N00UC7eUsfeEUYWr6y3bQkZPFN3+bzKZxqVRGOEGe7+3rD5";
-	private static final String ADMIN_PRIV_KEY = "MHsCAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQEEYTBfAgEBBBgDXK95Al4rQHdvRSTP8D7GfNYMmPq9z02gCgYIKoZIzj0DAQGhNAMyAARA4Llh28RJRmd6PRbY3TRQLt5Sx94RRhavrLdtCRk8U3f5vMpnGpVEY4QZ7v7esPk=";
+	//private static final String ADMIN_PRIV_KEY = "MHsCAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQEEYTBfAgEBBBgDXK95Al4rQHdvRSTP8D7GfNYMmPq9z02gCgYIKoZIzj0DAQGhNAMyAARA4Llh28RJRmd6PRbY3TRQLt5Sx94RRhavrLdtCRk8U3f5vMpnGpVEY4QZ7v7esPk=";
 	
 	private Map<String, Double> accounts;
 	//private List<String> admins;
@@ -51,15 +54,12 @@ public class SimpleWallet implements Wallet {
 	}
 
 	@Override
-	public boolean transfer(Transaction transaction) {//throws InvalidNumberException {
-
-		/*if( transaction.getAmount() < 0 )
-			throw new InvalidNumberException("Transfered amount cannot be negative");*/
+	public boolean transfer(Transaction transaction) throws InvalidAddressException, InvalidSignatureException, InvalidAmountException, NotEnoughMoneyException {
 
 		Double from_balance = accounts.get(transaction.getFrom());
 
 		// If the signature is valid
-		if( transaction.isValid() ) {
+		if( transaction.validate() ) {
 			// If the transaction came from an admin
 			if(isAdmin(transaction.getFrom())) {
 				createMoney(transaction.getTo(), transaction.getAmount());
@@ -77,8 +77,10 @@ public class SimpleWallet implements Wallet {
 
 						createMoney(transaction.getTo(), transaction.getAmount());
 						return true;
-					}
-				}
+					} else
+						throw new NotEnoughMoneyException(transaction.getFrom() + " has not enough money");
+				} else
+					throw new NotEnoughMoneyException(transaction.getFrom() + " has not enough money");
 			}
 		}
 
@@ -101,7 +103,7 @@ public class SimpleWallet implements Wallet {
 	}
 
 	@Override
-	public boolean atomicTransfer(List<Transaction> transactions) {//throws InvalidNumberException {
+	public boolean atomicTransfer(List<Transaction> transactions) throws InvalidAddressException, InvalidSignatureException, InvalidAmountException, NotEnoughMoneyException {
 
 		Map<String, Double> temp = new HashMap<>(accounts); // Backup
 		
@@ -109,14 +111,7 @@ public class SimpleWallet implements Wallet {
 		try {
 			for(Transaction t : transactions) {
 
-				// Correct
-				if( t.isValid() ) {
-					result = this.transfer(t);
-				} else {
-					result = false;
-				}
-
-				if(!result) {
+				if( this.transfer(t) ) {
 					accounts = temp; // Rollback
 					break;
 				}

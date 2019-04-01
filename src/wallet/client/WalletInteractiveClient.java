@@ -9,9 +9,12 @@ import java.util.Map.Entry;
 
 import rest.RESTWalletClient;
 import utils.Cryptography;
-import wallet.InvalidNumberException;
 import wallet.Transaction;
 import wallet.Wallet;
+import wallet.exceptions.InvalidAddressException;
+import wallet.exceptions.InvalidAmountException;
+import wallet.exceptions.InvalidSignatureException;
+import wallet.exceptions.NotEnoughMoneyException;
 
 public class WalletInteractiveClient {
 
@@ -124,12 +127,10 @@ public class WalletInteractiveClient {
 				}
 
 			} catch (NumberFormatException e) {
-				System.out.println("ERROR: Only numbers are allowed!");
-			} /*catch (InvalidNumberException e) {
-				System.out.println(e.getMessage());
-			}*/
-
-			//System.out.println("");
+				System.out.println("ERROR: Only numbers are allowed in that field!");
+			} catch (InvalidAddressException | InvalidAmountException | InvalidSignatureException | NotEnoughMoneyException e1) {
+				System.out.println(e1.getMessage());
+			}
 		}
 	}
 

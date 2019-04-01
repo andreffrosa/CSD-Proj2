@@ -16,10 +16,13 @@ import java.util.logging.Logger;
 import bftsmart.tom.MessageContext;
 import bftsmart.tom.ServiceReplica;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
-import wallet.InvalidNumberException;
 import wallet.SimpleWallet;
 import wallet.Transaction;
 import wallet.Wallet;
+import wallet.exceptions.InvalidAddressException;
+import wallet.exceptions.InvalidAmountException;
+import wallet.exceptions.InvalidSignatureException;
+import wallet.exceptions.NotEnoughMoneyException;
 
 public class BFTWalletServer extends DefaultRecoverable {
 
@@ -66,9 +69,27 @@ public class BFTWalletServer extends DefaultRecoverable {
 				double amount = objIn.readDouble();
 				String signature = objIn.readUTF();
 
-				boolean result = wallet.transfer(new Transaction(from, to, amount, signature, true));
+				boolean result = false;
 
-				objOut.writeBoolean(result);
+				try {
+					result = wallet.transfer(new Transaction(from, to, amount, signature, true));
+
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeBoolean(result);
+				} catch (InvalidAddressException e) {
+					objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
+					objOut.writeUTF(e.getMessage());
+				} catch (InvalidAmountException e) {
+					objOut.writeObject(BFTWalletResultType.INVALID_AMOUNT);
+					objOut.writeUTF(e.getMessage());
+				} catch (InvalidSignatureException e) {
+					objOut.writeObject(BFTWalletResultType.INVALID_SIGNATURE);
+					objOut.writeUTF(e.getMessage());
+				} catch (NotEnoughMoneyException e) {
+					objOut.writeObject(BFTWalletResultType.NOT_ENOUGH_MONEY);
+					objOut.writeUTF(e.getMessage());
+				}
+
 				hasReply = true;
 
 				System.out.println("(" + iterations + ") transfer(" + from + ", " + to + ", " + amount + ") : " + result);
@@ -76,10 +97,27 @@ public class BFTWalletServer extends DefaultRecoverable {
 				break;
 			case ATOMIC_TRANSFER_MONEY:
 				@SuppressWarnings("unchecked") List<Transaction> transactions = (List<Transaction>) objIn.readObject();
+				
+				result = false;
+				try {
+					result = wallet.atomicTransfer(transactions);
 
-				result = wallet.atomicTransfer(transactions);
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeBoolean(result);
+				} catch (InvalidAddressException e) {
+					objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
+					objOut.writeUTF(e.getMessage());
+				} catch (InvalidAmountException e) {
+					objOut.writeObject(BFTWalletResultType.INVALID_AMOUNT);
+					objOut.writeUTF(e.getMessage());
+				} catch (InvalidSignatureException e) {
+					objOut.writeObject(BFTWalletResultType.INVALID_SIGNATURE);
+					objOut.writeUTF(e.getMessage());
+				} catch (NotEnoughMoneyException e) {
+					objOut.writeObject(BFTWalletResultType.NOT_ENOUGH_MONEY);
+					objOut.writeUTF(e.getMessage());
+				}
 
-				objOut.writeBoolean(result);
 				hasReply = true;
 
 				System.out.println("(" + iterations + ") atomicTransfer(...) : " + result);
@@ -90,6 +128,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 
 				double balance = wallet.balance(who);
 
+				objOut.writeObject(BFTWalletResultType.OK);
 				objOut.writeDouble(balance);
 				hasReply = true;
 
@@ -99,6 +138,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 			case GET_LEDGER:
 				Map<String, Double> ledger = wallet.ledger();
 
+				objOut.writeObject(BFTWalletResultType.OK);
 				objOut.writeObject(ledger);
 				hasReply = true;
 
@@ -142,6 +182,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 
 				double balance = wallet.balance(who);
 
+				objOut.writeObject(BFTWalletResultType.OK);
 				objOut.writeDouble(balance);
 				hasReply = true;
 
@@ -151,6 +192,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 			case GET_LEDGER:
 				Map<String, Double> ledger = wallet.ledger();
 
+				objOut.writeObject(BFTWalletResultType.OK);
 				objOut.writeObject(ledger);
 				hasReply = true;
 

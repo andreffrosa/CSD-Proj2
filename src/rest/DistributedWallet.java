@@ -7,14 +7,14 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import bft.BFTReply;
+import org.omg.CosNaming.NamingContextExtPackage.InvalidAddress;
+
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
 import rest.entities.TransferRequest;
-import wallet.InvalidNumberException;
-
-import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
+import wallet.exceptions.InvalidAmountException;
+import wallet.exceptions.InvalidSignatureException;
+import wallet.exceptions.NotEnoughMoneyException;
 
 @Path(DistributedWallet.PATH)
 public interface DistributedWallet {
@@ -25,13 +25,13 @@ public interface DistributedWallet {
 	@Path("/transfer")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] transfer(TransferRequest request) throws InvalidNumberException;
+	byte[] transfer(TransferRequest request) throws InvalidAddress, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException;
 	
 	@POST
 	@Path("/atomicTransfer")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] atomicTransfer(AtomicTransferRequest request) throws InvalidNumberException;
+	byte[] atomicTransfer(AtomicTransferRequest request) throws InvalidAddress, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException;
 
 	@POST
 	@Path("/balance")

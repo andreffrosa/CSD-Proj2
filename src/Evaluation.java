@@ -2,13 +2,17 @@ import rest.RESTWalletClient;
 import wallet.Transaction;
 import wallet.Wallet;
 import wallet.client.WalletClient;
+import wallet.exceptions.InvalidAddressException;
+import wallet.exceptions.InvalidAmountException;
+import wallet.exceptions.InvalidSignatureException;
+import wallet.exceptions.NotEnoughMoneyException;
 
 public class Evaluation {
 	
 	private static final String ADMIN_PUB_KEY = "MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEQOC5YdvESUZnej0W2N00UC7eUsfeEUYWr6y3bQkZPFN3+bzKZxqVRGOEGe7+3rD5";
 	private static final String ADMIN_PRIV_KEY = "MHsCAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQEEYTBfAgEBBBgDXK95Al4rQHdvRSTP8D7GfNYMmPq9z02gCgYIKoZIzj0DAQGhNAMyAARA4Llh28RJRmd6PRbY3TRQLt5Sx94RRhavrLdtCRk8U3f5vMpnGpVEY4QZ7v7esPk=";
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
 		Wallet admin_wallet = new RESTWalletClient(new String[] { "https://localhost:8080/", "https://localhost:8081/",
 				"https://localhost:8082/", "https://localhost:8083/" });
 		

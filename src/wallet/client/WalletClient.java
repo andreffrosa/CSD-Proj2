@@ -12,6 +12,10 @@ import rest.RESTWalletClient;
 import utils.Cryptography;
 import wallet.Transaction;
 import wallet.Wallet;
+import wallet.exceptions.InvalidAddressException;
+import wallet.exceptions.InvalidAmountException;
+import wallet.exceptions.InvalidSignatureException;
+import wallet.exceptions.NotEnoughMoneyException;
 
 public class WalletClient {
 
@@ -38,6 +42,14 @@ public class WalletClient {
 
 		return pubKey;
 	}
+	
+	public String getPrivKey(String pubKey) {
+		String privKey = to_receive_addresses.get(pubKey);
+		if(privKey == null)
+			privKey = used_addresses.get(pubKey).getKey();
+		
+		return privKey;
+	}
 
 	public double checkReception(String pubKey) {
 		double balance = wallet.balance(pubKey);
@@ -51,7 +63,7 @@ public class WalletClient {
 		return balance;
 	}
 
-	public boolean transfer(String to, double amount) {
+	public boolean transfer(String to, double amount) throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
 
 		// agrupar €€ suficiente de vários endereços
 		List<Transaction> transactions = new LinkedList<>();
@@ -81,7 +93,7 @@ public class WalletClient {
 		}
 
 		if (current_amount < amount) {
-			throw new RuntimeException("Not enough money");
+			throw new NotEnoughMoneyException("All of your wallet's addresses have not enough money");
 		}
 
 		// Fazer pedido REST enviando a lista de transações e esperar a resposta
@@ -93,7 +105,7 @@ public class WalletClient {
 		return status;
 	}
 	
-	public boolean transferFrom(String pubKey, String to, double amount) {
+	public boolean transferFrom(String pubKey, String to, double amount) throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
 		Entry<String, Double> e = used_addresses.get(pubKey);
 		
 		if( e != null ) {
@@ -103,7 +115,7 @@ public class WalletClient {
 			if( balance >= amount ) {
 				Transaction t = new Transaction(pubKey, to, amount, privKey);
 				
-				if(wallet.transfer(t)) {
+				if( wallet.transfer(t) ) {
 					double new_balance = balance - amount;
 					if(new_balance > 0.0) {
 						used_addresses.put(pubKey, new AbstractMap.SimpleEntry<String, Double>(privKey, new_balance));

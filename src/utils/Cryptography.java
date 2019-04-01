@@ -15,7 +15,6 @@ import java.security.spec.ECGenParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
 
 public class Cryptography {
 
@@ -92,10 +91,24 @@ public class Cryptography {
 			boolean valid = sig.verify(java.util.Base64.getDecoder().decode(signature));
 			
 			return valid;
-		} catch(NoSuchAlgorithmException | NoSuchProviderException | InvalidKeySpecException | InvalidKeyException | SignatureException e) {
-			//throw new RuntimeException(e.getMessage());
-			//e.printStackTrace();
+		} catch(InvalidKeySpecException | InvalidKeyException | SignatureException e) {
 			return false;
+		} catch(NoSuchAlgorithmException | NoSuchProviderException e) {
+			throw new RuntimeException(e.getMessage());
+		}
+	}
+	
+	public static boolean validateAdress(String address) {
+		try {
+			KeyFactory kf = KeyFactory.getInstance(keyGenAlgorithm, provider);
+			X509EncodedKeySpec keySpecX509 = new X509EncodedKeySpec(java.util.Base64.getDecoder().decode(address));
+			kf.generatePublic(keySpecX509);
+			
+			return true;
+		} catch(InvalidKeySpecException e) {
+			return false;
+		} catch(NoSuchAlgorithmException | NoSuchProviderException e) {
+			throw new RuntimeException(e.getMessage());
 		}
 	}
 }

@@ -1,9 +1,5 @@
 package rest;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -22,15 +18,16 @@ import javax.net.ssl.SSLSession;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 
-import com.google.gson.GsonBuilder;
-
 import bft.BFTReply;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
 import rest.entities.TransferRequest;
-import wallet.InvalidNumberException;
 import wallet.Transaction;
 import wallet.Wallet;
+import wallet.exceptions.InvalidAddressException;
+import wallet.exceptions.InvalidAmountException;
+import wallet.exceptions.InvalidSignatureException;
+import wallet.exceptions.NotEnoughMoneyException;
 
 public class RESTWalletClient implements Wallet {
 
@@ -96,51 +93,23 @@ public class RESTWalletClient implements Wallet {
 		logger.log(Level.WARNING, String.format("Aborted request! Too many tries..."));
 		return null;
 	}
-
-	private BFTReply processReply( byte[] reply ) {
-		
-		if (reply.length == 0) {
-			return null;
-		}
-
-		try (ByteArrayInputStream byteIn = new ByteArrayInputStream(reply);
-				ObjectInput objIn = new ObjectInputStream(byteIn)) {
-
-			int replies = objIn.readInt();
-
-			byte[][] signatures = new byte[replies][];
-			int[] ids =  new int[replies];
-			byte[] content = (byte[]) objIn.readObject();
-
-			for(int i = 0; i < replies; i++) {
-				signatures[i] = (byte[]) objIn.readObject();
-				ids[i] = (int) objIn.readInt();
-			}
-
-			return new BFTReply(replies, content, signatures, ids);
-
-		} catch (IOException | ClassNotFoundException e) {
-			e.printStackTrace();
-			return null;
-		}
-	}
 	
 	@Override
-	public boolean transfer(Transaction transaction) {//throws InvalidNumberException {
+	public boolean transfer(Transaction transaction) throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
 		
 		/*if( transaction.getAmount() < 0 )
-			throw new InvalidNumberException("Transfered amount cannot be negative");*/
+			throw new InvalidAmountException("Transfered amount cannot be negative");*/
 		
-		if( !transaction.isValid() )
-			return false;
+		/*if( !transaction.isValid() )
+			return false;*/
+		
+		//transaction.validate();
 		
 		TransferRequest request = new TransferRequest(transaction);
 		
 		byte[] result = processRequest((location) -> {			
 			Response response = client.target(location).path(DistributedWallet.PATH + "/transfer/")
 					.request().post(Entity.entity(request, MediaType.APPLICATION_JSON));
-			
-			//System.out.println(response.toString());
 
 			if (response.getStatus() == 200) {
 				return (byte[]) response.readEntity(byte[].class);
@@ -148,25 +117,39 @@ public class RESTWalletClient implements Wallet {
 				throw new RuntimeException("WalletClient Transfer: " + response.getStatus());
 		});
 
-		BFTReply r = processReply(result);
-
+		BFTReply r = BFTReply.processReply(result);
 		if( r != null ) {
-			if( r.validateSignatures() )
-				return r.getReplyAsBoolean();
+			if( r.validateSignatures() ) {
+				if( r.isException() ) {
+					String msg = r.getReplyAsString();
+					switch(r.getResultType()) {
+						case INVALID_ADDRESS:
+							throw new InvalidAddressException(msg);
+						case INVALID_AMOUNT:
+							throw new InvalidAmountException(msg);
+						case INVALID_SIGNATURE:
+							throw new InvalidSignatureException(msg);
+						case NOT_ENOUGH_MONEY:
+							throw new NotEnoughMoneyException(msg);
+						default:
+							break;
+					}
+				} else {
+					return r.getReplyAsBoolean();
+				}	
+			}
 		}
 		throw new RuntimeException("Replies are not valid!");
 	}
 	
 	@Override
-	public boolean atomicTransfer(List<Transaction> transactions) {// throws InvalidNumberException {
+	public boolean atomicTransfer(List<Transaction> transactions) throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
 		
 		AtomicTransferRequest request = new AtomicTransferRequest(transactions);
 		
 		byte[] result = processRequest((location) -> {			
 			Response response = client.target(location).path(DistributedWallet.PATH + "/atomicTransfer/")
 					.request().post(Entity.entity(request, MediaType.APPLICATION_JSON));
-			
-			//System.out.println(response.toString());
 
 			if (response.getStatus() == 200) {
 				return (byte[]) response.readEntity(byte[].class);
@@ -174,11 +157,27 @@ public class RESTWalletClient implements Wallet {
 				throw new RuntimeException("WalletClient atomicTransfer: " + response.getStatus());
 		});
 
-		BFTReply r = processReply(result);
-
+		BFTReply r = BFTReply.processReply(result);
 		if( r != null ) {
-			if( r.validateSignatures() )
-				return r.getReplyAsBoolean();
+			if( r.validateSignatures() ) {
+				if( r.isException() ) {
+					String msg = r.getReplyAsString();
+					switch(r.getResultType()) {
+						case INVALID_ADDRESS:
+							throw new InvalidAddressException(msg);
+						case INVALID_AMOUNT:
+							throw new InvalidAmountException(msg);
+						case INVALID_SIGNATURE:
+							throw new InvalidSignatureException(msg);
+						case NOT_ENOUGH_MONEY:
+							throw new NotEnoughMoneyException(msg);
+						default:
+							break;
+					}
+				} else {
+					return r.getReplyAsBoolean();
+				}	
+			}
 		}
 		throw new RuntimeException("Replies are not valid!");
 	}
@@ -198,8 +197,7 @@ public class RESTWalletClient implements Wallet {
 				throw new RuntimeException("WalletClient currentAmount: " + response.getStatus());
 		});
 
-		BFTReply r = processReply(reply);
-		
+		BFTReply r = BFTReply.processReply(reply);
 		if( r != null ) {
 			if( r.validateSignatures() )
 				return r.getReplyAsDouble();
@@ -221,8 +219,7 @@ public class RESTWalletClient implements Wallet {
 				throw new RuntimeException("WalletClient ledger: " + response.getStatus());
 		});
 
-		BFTReply r = processReply(reply);
-		
+		BFTReply r = BFTReply.processReply(reply);
 		if( r != null ) {
 			if( r.validateSignatures() )
 				return (Map<String, Double>) r.getReplyAsObject();

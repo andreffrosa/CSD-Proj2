@@ -121,7 +121,7 @@ public class RESTWalletClient implements Wallet {
 		if( r != null ) {
 			if( r.validateSignatures() ) {
 				if( r.isException() ) {
-					String msg = r.getReplyAsString();
+					String msg = (String) r.getContent();
 					switch(r.getResultType()) {
 						case INVALID_ADDRESS:
 							throw new InvalidAddressException(msg);
@@ -135,7 +135,7 @@ public class RESTWalletClient implements Wallet {
 							break;
 					}
 				} else {
-					return r.getReplyAsBoolean();
+					return (Boolean) r.getContent();
 				}	
 			}
 		}
@@ -161,7 +161,7 @@ public class RESTWalletClient implements Wallet {
 		if( r != null ) {
 			if( r.validateSignatures() ) {
 				if( r.isException() ) {
-					String msg = r.getReplyAsString();
+					String msg = (String) r.getContent();
 					switch(r.getResultType()) {
 						case INVALID_ADDRESS:
 							throw new InvalidAddressException(msg);
@@ -175,7 +175,7 @@ public class RESTWalletClient implements Wallet {
 							break;
 					}
 				} else {
-					return r.getReplyAsBoolean();
+					return (Boolean) r.getContent();
 				}	
 			}
 		}
@@ -200,7 +200,7 @@ public class RESTWalletClient implements Wallet {
 		BFTReply r = BFTReply.processReply(reply);
 		if( r != null ) {
 			if( r.validateSignatures() )
-				return r.getReplyAsDouble();
+				return (Double) r.getContent();
 		}
 		throw new RuntimeException("Replies are not valid!");
 	}
@@ -222,7 +222,7 @@ public class RESTWalletClient implements Wallet {
 		BFTReply r = BFTReply.processReply(reply);
 		if( r != null ) {
 			if( r.validateSignatures() )
-				return (Map<String, Double>) r.getReplyAsObject();
+				return (Map<String, Double>) r.getContent();
 		}
 		throw new RuntimeException("Replies are not valid!");
 	}

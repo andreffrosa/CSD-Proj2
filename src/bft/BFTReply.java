@@ -14,6 +14,7 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -31,20 +32,16 @@ public class BFTReply implements java.io.Serializable {
 	 */
 	private static final long serialVersionUID = 1L;
 
-
-	private int n_replies;
-	private byte[] reply;
-	private byte[][] signatures;
-	private int[] ids;
+	private Object content;
 	private BFTWalletResultType result_type;
 
 	public BFTReply() {}
 
-	public BFTReply(int n_replies, byte[] reply, byte[][] signatures, int[] ids, BFTWalletResultType result_type) {
-		this.n_replies = n_replies;
-		this.reply = reply;
+	public BFTReply(Object content, BFTWalletResultType result_type) {
+		/*this.replies = replies;
 		this.signatures = signatures;
-		this.ids = ids;
+		this.ids = ids;*/
+		this.content = content;
 		this.result_type = result_type;
 	}
 
@@ -57,49 +54,89 @@ public class BFTReply implements java.io.Serializable {
 		try (ByteArrayInputStream byteIn = new ByteArrayInputStream(reply);
 				ObjectInput objIn = new ObjectInputStream(byteIn)) {
 
-			int replies = objIn.readInt();
+			int n_replies = objIn.readInt();
 
-			byte[][] signatures = new byte[replies][];
-			int[] ids =  new int[replies];
-			byte[] content = (byte[]) objIn.readObject();
+			byte[][] contents = new byte[n_replies][];
+			byte[][] signatures = new byte[n_replies][];
+			int[] ids =  new int[n_replies];
+			
+			System.out.println(n_replies);
 
-			for(int i = 0; i < replies; i++) {
-				signatures[i] = (byte[]) objIn.readObject();
+			for(int i = 0; i < n_replies; i++) {
 				ids[i] = (int) objIn.readInt();
+				contents[i] = (byte[]) objIn.readObject();
+				signatures[i] = (byte[]) objIn.readObject();
 			}
 			
-			ByteArrayInputStream byteIn2 = new ByteArrayInputStream(content.clone());
-			ObjectInput objIn2 = new ObjectInputStream(byteIn2);
-			
-			BFTWalletResultType result_status = (BFTWalletResultType) objIn2.readObject();
-			
-			objIn2.close();
-			byteIn2.close();
-			
-			System.out.println(result_status);
-			
-			return new BFTReply(replies, content, signatures, ids, result_status);
+			// Validate the replies
+			return chooseValid(n_replies, ids, contents, signatures);
 		} catch (IOException | ClassNotFoundException e) {
 			e.printStackTrace();
 		} 
 		
 		return null;
 	}
+	
+	private static BFTReply chooseValid(int n_replies, int[] ids, byte[][] contents, byte[][] signatures) {
+		
+		System.out.println("Choosing the valid...");
+		
+		Map<String, Integer> aux = new HashMap<>(n_replies);
+		
+		for(int i = 0; i < n_replies; i++) {
+			// Verificar se assinatura é válida
+			if( validSignature(ids[i], contents[i], signatures[i]) ) {
+				String hash = java.util.Base64.getEncoder().encodeToString(contents[i]);
+				Integer count = aux.get(hash);
+				if(count == null) {
+					count = 0;
+				}
+				
+				aux.put(hash, count+1);
+			}
+		}
+		
+		System.out.println("replies sorted " + aux.size());
+		
+		// Choose the reply with more repetions and without ties
+		String choosen = null;
+		int max = 0;
+		boolean tie = false;
+		for( Entry<String, Integer> e : aux.entrySet() ) {
+			if(e.getValue() > max) {
+				choosen = e.getKey();
+				max = e.getValue();
+				tie = false;
+			} else if(e.getValue() == max) {
+				tie = true;
+			}
+		}
+		System.out.println("max " + max + " tie " + tie);
+		
+		if(choosen != null && !tie) {
+			byte[] content = java.util.Base64.getDecoder().decode(choosen);
+			
+			try (ByteArrayInputStream byteIn = new ByteArrayInputStream(content);
+					       ObjectInput objIn = new ObjectInputStream(byteIn)) {
 
-	public byte[][] getSignatures() {
-		return signatures;
+				BFTWalletResultType result_status = (BFTWalletResultType) objIn.readObject();
+				Object value = objIn.readObject();
+				
+				System.out.println("return new BFTReply;");
+				
+				return new BFTReply(value, result_status);
+			} catch (IOException | ClassNotFoundException e) {
+				e.printStackTrace();
+			} 
+		}
+		System.out.println("return null;");
+		
+		return null;
 	}
-
-	public int[] getids() {
-		return ids;
-	}
-
-	public int getRepliesNumber() {
-		return n_replies;
-	}
-
-	public byte[] getReply() {
-		return reply;
+	
+	private static boolean validSignature(int id, byte[] content, byte[] signature) {
+		// TODO
+		return true;
 	}
 
 	public boolean validateSignatures() {
@@ -150,60 +187,8 @@ public class BFTReply implements java.io.Serializable {
 		}
 	}
 
-	public int getReplyAsInt() {
-		try (ByteArrayInputStream byteIn = new ByteArrayInputStream(reply);
-				ObjectInput objIn = new ObjectInputStream(byteIn)) {
-			
-			objIn.readObject();
-			return objIn.readInt();
-		} catch(IOException | ClassNotFoundException e) {
-			throw new RuntimeException(e.getMessage());
-		}
-	}
-
-	public double getReplyAsDouble() {
-		try (ByteArrayInputStream byteIn = new ByteArrayInputStream(reply);
-				ObjectInput objIn = new ObjectInputStream(byteIn)) {
-			
-			objIn.readObject();
-			return objIn.readDouble();
-		} catch(IOException | ClassNotFoundException e) {
-			throw new RuntimeException(e.getMessage());
-		}
-	}
-
-	public boolean getReplyAsBoolean() {
-		try (ByteArrayInputStream byteIn = new ByteArrayInputStream(reply);
-				ObjectInput objIn = new ObjectInputStream(byteIn)) {
-			
-			objIn.readObject();
-			return objIn.readBoolean();
-		} catch(IOException | ClassNotFoundException e) {
-			throw new RuntimeException(e.getMessage());
-		}
-	}
-
-	public Object getReplyAsObject() {
-		try (ByteArrayInputStream byteIn = new ByteArrayInputStream(reply);
-				ObjectInput objIn = new ObjectInputStream(byteIn)) {
-			
-			objIn.readObject();
-			return objIn.readObject();
-		} catch(IOException | ClassNotFoundException e) {
-			throw new RuntimeException(e.getMessage());
-		}
-	}
-	
-	public String getReplyAsString() {
-		try (ByteArrayInputStream byteIn = new ByteArrayInputStream(reply);
-				ObjectInput objIn = new ObjectInputStream(byteIn)) {
-			
-			objIn.readObject();
-			return objIn.readUTF();
-		} catch(IOException | ClassNotFoundException e) {
-			e.printStackTrace();
-			throw new RuntimeException(e.getMessage());
-		}
+	public Object getContent() {
+		return this.content;
 	}
 	
 	public boolean isException() {

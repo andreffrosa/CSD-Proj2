@@ -15,6 +15,9 @@ public class Test {
 	private static final String ADMIN_PUB_KEY = "MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEQOC5YdvESUZnej0W2N00UC7eUsfeEUYWr6y3bQkZPFN3+bzKZxqVRGOEGe7+3rD5";
 	private static final String ADMIN_PRIV_KEY = "MHsCAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQEEYTBfAgEBBBgDXK95Al4rQHdvRSTP8D7GfNYMmPq9z02gCgYIKoZIzj0DAQGhNAMyAARA4Llh28RJRmd6PRbY3TRQLt5Sx94RRhavrLdtCRk8U3f5vMpnGpVEY4QZ7v7esPk=";
 
+	private static final String[] servers = new String[] { "https://localhost:8080/", "https://localhost:8081/",
+			"https://localhost:8082/", "https://localhost:8083/" };
+	
 	public static void main(String[] args) throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
 		//testTransferences();
 		
@@ -24,14 +27,13 @@ public class Test {
 	}
 	
 	private static void testExceptions() {
-		WalletClient wallet1 = new WalletClient(); 
-		WalletClient wallet2 = new WalletClient();
+		WalletClient wallet1 = new WalletClient(servers); 
+		WalletClient wallet2 = new WalletClient(servers);
 		
 		String addr1 = wallet1.generateNewAddress();
 		String addr2 = wallet2.generateNewAddress();
 		
-		Wallet admin_wallet = new RESTWalletClient(new String[] { "https://localhost:8080/", "https://localhost:8081/",
-				"https://localhost:8082/", "https://localhost:8083/" });
+		Wallet admin_wallet = new RESTWalletClient(servers);
 		
 		try {
 			boolean status = admin_wallet.transfer(new Transaction(ADMIN_PUB_KEY, addr1, -100.0, ADMIN_PRIV_KEY));
@@ -92,11 +94,10 @@ public class Test {
 	}
 
 	private static void testTransferences() throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
-		Wallet admin_wallet = new RESTWalletClient(new String[] { "https://localhost:8080/", "https://localhost:8081/",
-				"https://localhost:8082/", "https://localhost:8083/" });
+		Wallet admin_wallet = new RESTWalletClient(servers);
 		
-		WalletClient wallet1 = new WalletClient(); 
-		WalletClient wallet2 = new WalletClient();
+		WalletClient wallet1 = new WalletClient(servers); 
+		WalletClient wallet2 = new WalletClient(servers);
 		
 		String addr1 = wallet1.generateNewAddress();
 		String addr2 = wallet2.generateNewAddress();

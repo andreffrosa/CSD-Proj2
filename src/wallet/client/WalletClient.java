@@ -25,12 +25,11 @@ public class WalletClient {
 	private Wallet wallet;
 
 	// Constructor
-	public WalletClient() {
+	public WalletClient(String[] servers) {
 		to_receive_addresses = new HashMap<>();
 		used_addresses = new HashMap<>();
 		
-		wallet = new RESTWalletClient(new String[] { "https://localhost:8080/", "https://localhost:8081/",
-				 "https://localhost:8082/", "https://localhost:8083/" });
+		wallet = new RESTWalletClient(servers);
 	}
 
 	public String generateNewAddress() {
@@ -96,7 +95,6 @@ public class WalletClient {
 			throw new NotEnoughMoneyException("All of your wallet's addresses have not enough money");
 		}
 
-		// Fazer pedido REST enviando a lista de transações e esperar a resposta
 		boolean status = wallet.atomicTransfer(transactions);
 		
 		if(status)

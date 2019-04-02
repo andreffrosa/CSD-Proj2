@@ -16,7 +16,7 @@ public class ReplyExtractor implements Extractor {
 	@SuppressWarnings("deprecation")
 	@Override
 	public TOMMessage extractResponse(TOMMessage[] replies, int sameContent, int lastReceived) {
-		
+
 		System.out.println("sameContent: " + sameContent);
 
 		for( int i = 0; i < replies.length; i++ ) {
@@ -39,29 +39,37 @@ public class ReplyExtractor implements Extractor {
 		int operationid = replies[lastReceived].getOperationId();
 		int view = replies[lastReceived].getViewID();
 		TOMMessageType type = replies[lastReceived].getReqType();
-		
-		byte[] content = null;
-		
+
+		byte[] content = new byte[0];
 		try {
 			ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 			ObjectOutput objOut = new ObjectOutputStream(byteOut);
+
 			objOut.writeInt(sameContent);
-			objOut.writeObject(replies[lastReceived].getContent());
-			for( int i = 0; i < replies.length; i++ ) {
+
+			int written = 0;
+			for( int i = 0; i < replies.length && written < sameContent; i++ ) {
 				if(replies[i] != null) {
-					objOut.writeObject(replies[i].serializedMessageSignature);
 					objOut.writeInt(replies[i].getSender());
+					objOut.writeObject(replies[i].getContent());
+					objOut.writeObject(replies[i].serializedMessageSignature);
+					System.out.println("wiritng " + i + " ...");
+					written++;
 				}
 			}
 			objOut.flush();
 			byteOut.flush();
+			
 			content = byteOut.toByteArray();
+
+			objOut.close();
+			byteOut.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 		TOMMessage reply = new TOMMessage(sender, session, sequence, operationid, content, view, type);
-		
+
 		return reply;
 	}
 }

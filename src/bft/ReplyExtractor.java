@@ -40,7 +40,7 @@ public class ReplyExtractor implements Extractor {
 		int view = replies[lastReceived].getViewID();
 		TOMMessageType type = replies[lastReceived].getReqType();
 
-		byte[] content = new byte[0];
+		byte[] content = null;
 		try {
 			ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 			ObjectOutput objOut = new ObjectOutputStream(byteOut);
@@ -51,7 +51,7 @@ public class ReplyExtractor implements Extractor {
 			for( int i = 0; i < replies.length && written < sameContent; i++ ) {
 				if(replies[i] != null) {
 					objOut.writeInt(replies[i].getSender());
-					objOut.writeObject(replies[i].getContent());
+					objOut.writeObject(replies[i].getContent() /*replies[i].serializedMessage*/);
 					objOut.writeObject(replies[i].serializedMessageSignature);
 					System.out.println("wiritng " + i + " ...");
 					written++;

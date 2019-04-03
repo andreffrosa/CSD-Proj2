@@ -12,8 +12,12 @@ public class BFTReplicatedWallet implements DistributedWallet {
 	BFTWalletClient wallet;
 
 	public BFTReplicatedWallet(int id) {
+		this(id, false);
+	}
+	
+	public BFTReplicatedWallet(int id, boolean byzantine) {
 		wallet = new BFTWalletClient(id);
-		new Thread( () -> {server = new BFTWalletServer(id); }).start();
+		new Thread( () -> {server = new BFTWalletServer(id, byzantine); }).start();
 	}
 
 	@Override

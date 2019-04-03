@@ -16,6 +16,7 @@ import java.util.logging.Logger;
 import bftsmart.tom.MessageContext;
 import bftsmart.tom.ServiceReplica;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
+import wallet.ByzantineWallet;
 import wallet.SimpleWallet;
 import wallet.Transaction;
 import wallet.Wallet;
@@ -32,8 +33,16 @@ public class BFTWalletServer extends DefaultRecoverable {
 	private Logger logger;
 
 	public BFTWalletServer(int id) {
+		this(id, false);
+	}
+	
+	public BFTWalletServer(int id, boolean byzantine) {
 		replica = new ServiceReplica(id, this, this);
-		wallet = new SimpleWallet();
+		
+		if(byzantine)
+			wallet = new ByzantineWallet();
+		else
+			wallet = new SimpleWallet();
 
 		iterations = 0;
 

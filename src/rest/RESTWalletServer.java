@@ -48,8 +48,13 @@ public class RESTWalletServer {
 		if( args.length > 2) {
 			port = Integer.parseInt(args[2]);
 		}
+		
+		boolean byzantine = false;
+		if( args.length > 3) {
+			byzantine = Boolean.parseBoolean(args[3]);
+		}
 
-		DistributedWallet wallet = new BFTReplicatedWallet(id);
+		DistributedWallet wallet = new BFTReplicatedWallet(id, byzantine);
 		
 		URI baseUri = UriBuilder.fromUri("https://0.0.0.0/").port(port).build();
 		

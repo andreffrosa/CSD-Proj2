@@ -40,7 +40,7 @@ public class RESTWalletClient implements Wallet {
 
 	private final int MAX_TRIES = 5;
 	private final int CONNECT_TIMEOUT = 20000;
-	private final int READ_TIMEOUT = 25000;
+	private final int READ_TIMEOUT = 30000;
 
 	// Private Variables
 	private Client client;
@@ -69,14 +69,14 @@ public class RESTWalletClient implements Wallet {
 		int index = -1;
 
 		for (int current_try = 0; current_try < MAX_TRIES; current_try++) {
-			
+
 			if(servers.isEmpty()) {
 				logger.log(Level.WARNING, String.format("Aborted request! All the servers didn't respond..."));
 				return null;
 			}
-			
+
 			index = (int) Math.floor(Math.random()*servers.size());
-			
+
 			try {
 				return requestHandler.execute(servers.get(index));
 			} catch (ProcessingException e) {
@@ -93,20 +93,20 @@ public class RESTWalletClient implements Wallet {
 		logger.log(Level.WARNING, String.format("Aborted request! Too many tries..."));
 		return null;
 	}
-	
+
 	@Override
 	public boolean transfer(Transaction transaction) throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
-		
+
 		/*if( transaction.getAmount() < 0 )
 			throw new InvalidAmountException("Transfered amount cannot be negative");*/
-		
+
 		/*if( !transaction.isValid() )
 			return false;*/
-		
+
 		//transaction.validate();
-		
+
 		TransferRequest request = new TransferRequest(transaction);
-		
+
 		byte[] result = processRequest((location) -> {			
 			Response response = client.target(location).path(DistributedWallet.PATH + "/transfer/")
 					.request().post(Entity.entity(request, MediaType.APPLICATION_JSON));
@@ -119,34 +119,32 @@ public class RESTWalletClient implements Wallet {
 
 		BFTReply r = BFTReply.processReply(result);
 		if( r != null ) {
-			if( r.validateSignatures() ) {
-				if( r.isException() ) {
-					String msg = (String) r.getContent();
-					switch(r.getResultType()) {
-						case INVALID_ADDRESS:
-							throw new InvalidAddressException(msg);
-						case INVALID_AMOUNT:
-							throw new InvalidAmountException(msg);
-						case INVALID_SIGNATURE:
-							throw new InvalidSignatureException(msg);
-						case NOT_ENOUGH_MONEY:
-							throw new NotEnoughMoneyException(msg);
-						default:
-							break;
-					}
-				} else {
-					return (Boolean) r.getContent();
-				}	
-			}
+			if( r.isException() ) {
+				String msg = (String) r.getContent();
+				switch(r.getResultType()) {
+				case INVALID_ADDRESS:
+					throw new InvalidAddressException(msg);
+				case INVALID_AMOUNT:
+					throw new InvalidAmountException(msg);
+				case INVALID_SIGNATURE:
+					throw new InvalidSignatureException(msg);
+				case NOT_ENOUGH_MONEY:
+					throw new NotEnoughMoneyException(msg);
+				default:
+					break;
+				}
+			} else {
+				return (Boolean) r.getContent();
+			}	
 		}
 		throw new RuntimeException("Replies are not valid!");
 	}
-	
+
 	@Override
 	public boolean atomicTransfer(List<Transaction> transactions) throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
-		
+
 		AtomicTransferRequest request = new AtomicTransferRequest(transactions);
-		
+
 		byte[] result = processRequest((location) -> {			
 			Response response = client.target(location).path(DistributedWallet.PATH + "/atomicTransfer/")
 					.request().post(Entity.entity(request, MediaType.APPLICATION_JSON));
@@ -159,34 +157,32 @@ public class RESTWalletClient implements Wallet {
 
 		BFTReply r = BFTReply.processReply(result);
 		if( r != null ) {
-			if( r.validateSignatures() ) {
 				if( r.isException() ) {
 					String msg = (String) r.getContent();
 					switch(r.getResultType()) {
-						case INVALID_ADDRESS:
-							throw new InvalidAddressException(msg);
-						case INVALID_AMOUNT:
-							throw new InvalidAmountException(msg);
-						case INVALID_SIGNATURE:
-							throw new InvalidSignatureException(msg);
-						case NOT_ENOUGH_MONEY:
-							throw new NotEnoughMoneyException(msg);
-						default:
-							break;
+					case INVALID_ADDRESS:
+						throw new InvalidAddressException(msg);
+					case INVALID_AMOUNT:
+						throw new InvalidAmountException(msg);
+					case INVALID_SIGNATURE:
+						throw new InvalidSignatureException(msg);
+					case NOT_ENOUGH_MONEY:
+						throw new NotEnoughMoneyException(msg);
+					default:
+						break;
 					}
 				} else {
 					return (Boolean) r.getContent();
 				}	
 			}
-		}
 		throw new RuntimeException("Replies are not valid!");
 	}
 
 	@Override
 	public double balance(String who) {
-		
+
 		BalanceRequest request = new BalanceRequest(who);
-		
+
 		byte[] reply = processRequest((location) -> {
 			Response response = client.target(location).path(DistributedWallet.PATH + "/balance/")
 					.request().post(Entity.entity(request, MediaType.APPLICATION_JSON));
@@ -199,16 +195,15 @@ public class RESTWalletClient implements Wallet {
 
 		BFTReply r = BFTReply.processReply(reply);
 		if( r != null ) {
-			if( r.validateSignatures() )
 				return (Double) r.getContent();
 		}
 		throw new RuntimeException("Replies are not valid!");
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public Map<String, Double> ledger() {
-		
+
 		byte[] reply = processRequest((location) -> {
 			Response response = client.target(location).path(DistributedWallet.PATH + "/ledger/")
 					.request().get();
@@ -221,7 +216,6 @@ public class RESTWalletClient implements Wallet {
 
 		BFTReply r = BFTReply.processReply(reply);
 		if( r != null ) {
-			if( r.validateSignatures() )
 				return (Map<String, Double>) r.getContent();
 		}
 		throw new RuntimeException("Replies are not valid!");

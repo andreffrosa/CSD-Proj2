@@ -12,6 +12,8 @@ import java.security.PublicKey;
 import java.security.Security;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.security.cert.CertificateException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -59,45 +61,50 @@ public class BFTReply implements java.io.Serializable {
 			byte[][] contents = new byte[n_replies][];
 			byte[][] signatures = new byte[n_replies][];
 			int[] ids =  new int[n_replies];
-			
-			System.out.println(n_replies);
+
+			//System.out.println(n_replies);
 
 			for(int i = 0; i < n_replies; i++) {
 				ids[i] = (int) objIn.readInt();
 				contents[i] = (byte[]) objIn.readObject();
 				signatures[i] = (byte[]) objIn.readObject();
 			}
-			
+
 			// Validate the replies
 			return chooseValid(n_replies, ids, contents, signatures);
 		} catch (IOException | ClassNotFoundException e) {
 			e.printStackTrace();
 		} 
-		
+
 		return null;
 	}
-	
+
 	private static BFTReply chooseValid(int n_replies, int[] ids, byte[][] contents, byte[][] signatures) {
-		
-		System.out.println("Choosing the valid...");
-		
+
+		//System.out.println("Choosing the valid...");
+
 		Map<String, Integer> aux = new HashMap<>(n_replies);
-		
+
 		for(int i = 0; i < n_replies; i++) {
 			// Verificar se assinatura é válida
 			if( validSignature(ids[i], contents[i], signatures[i]) ) {
 				String hash = java.util.Base64.getEncoder().encodeToString(contents[i]);
+				//System.out.println(hash);
 				Integer count = aux.get(hash);
 				if(count == null) {
-					count = 0;
+					count = new Integer(0);
 				}
-				
-				aux.put(hash, count+1);
+
+				aux.put(hash, new Integer(count.intValue()+1));
+				//System.out.println("aux size " + aux.size());
 			}
 		}
-		
-		System.out.println("replies sorted " + aux.size());
-		
+
+		/*System.out.println("replies sorted " + aux.size());
+		for( Entry<String, Integer> e : aux.entrySet() ) {
+			System.out.println("Counter: " + e.getValue());
+		}*/
+
 		// Choose the reply with more repetions and without ties
 		String choosen = null;
 		int max = 0;
@@ -111,69 +118,54 @@ public class BFTReply implements java.io.Serializable {
 				tie = true;
 			}
 		}
-		System.out.println("max " + max + " tie " + tie);
-		
+		//System.out.println("max " + max + " tie " + tie);
+
 		if(choosen != null && !tie) {
 			byte[] content = java.util.Base64.getDecoder().decode(choosen);
-			
+
 			try (ByteArrayInputStream byteIn = new ByteArrayInputStream(content);
-					       ObjectInput objIn = new ObjectInputStream(byteIn)) {
+					ObjectInput objIn = new ObjectInputStream(byteIn)) {
 
 				BFTWalletResultType result_status = (BFTWalletResultType) objIn.readObject();
 				Object value = objIn.readObject();
-				
-				System.out.println("return new BFTReply;");
-				
+
+				//System.out.println("return new BFTReply;");
+
 				return new BFTReply(value, result_status);
 			} catch (IOException | ClassNotFoundException e) {
 				e.printStackTrace();
 			} 
 		}
-		System.out.println("return null;");
-		
+		//System.out.println("return null;");
+
 		return null;
 	}
-	
 	private static boolean validSignature(int id, byte[] content, byte[] signature) {
-		// TODO
-		return true;
-	}
-
-	public boolean validateSignatures() {
-		System.out.println("Replies verification not implemented!");
-
-		/*Map<String, String> configs = loadConfig();
-		//System.out.println("system.communication.useSignatures = " + configs.get("system.communication.useSignatures"));
-		System.out.println("system.communication.signatureAlgorithm = " + configs.get("system.communication.signatureAlgorithm"));
-
+		Map<String, String> configs = loadConfig();
 		try {
-			for(int i = 0; i < signatures.length; i++) {
-				System.out.println("id: " + ids[i]);
-				KeyLoader keyLoader = getKeyloader(configs, ids[i]);
-				PublicKey pk = keyLoader.loadPublicKey();
-
-				System.out.println(pk.toString());
-
-				if( !verifySignature(configs, pk, reply, signatures[i]) ) {
-					System.out.println(ids[i] + "'s signature is invalid!");
-					//return false;
-				}
+			KeyLoader keyLoader = getKeyloader(configs, id);
+			PublicKey pk = keyLoader.loadPublicKey(id);
+			
+			//String k = java.util.Base64.getEncoder().encodeToString(pk.getEncoded());
+			//System.out.println("pubKey: " + k);
+			
+			if( !verifySignature(configs, pk, content, signature) ) {
+				//System.out.println(id + "'s signature is invalid!");
+				return false;
 			}
-			return false;
-
+			
+			//System.out.println(id + "'s signature is valid!");
+			return true;
 		} catch (NoSuchAlgorithmException | InvalidKeySpecException | CertificateException | IOException e) {
 			e.printStackTrace();
 			return false;
-		}*/
-
-		/*System.out.println("All signatures are valid!");*/
-		return true;
+		}
 	}
 
-	private boolean verifySignature(Map<String, String> configs, PublicKey pk, byte[] message, byte[] signature) {
+	private static boolean verifySignature(Map<String, String> configs, PublicKey pk, byte[] message, byte[] signature) {
 		String sigAlgorithm = configs.get("system.communication.signatureAlgorithm");
 		String sigAlgorithmProvider = configs.get("system.communication.signatureAlgorithmProvider");
-		
+
 		try {
 			Signature signatureEngine = Signature.getInstance(sigAlgorithm, Security.getProvider(sigAlgorithmProvider));
 
@@ -190,16 +182,16 @@ public class BFTReply implements java.io.Serializable {
 	public Object getContent() {
 		return this.content;
 	}
-	
+
 	public boolean isException() {
 		return !result_type.equals(BFTWalletResultType.OK);
 	}
-	
+
 	public BFTWalletResultType getResultType() {
 		return result_type;
 	}
 
-	private Map<String, String> loadConfig() {
+	private static Map<String, String> loadConfig() {
 
 		Map<String, String> configs = new HashMap<>();
 		String configHome = "config";
@@ -227,13 +219,17 @@ public class BFTReply implements java.io.Serializable {
 		return configs;
 	}
 
-	private KeyLoader getKeyloader(	Map<String, String> configs, int processId) {
+	private static KeyLoader getKeyloader(	Map<String, String> configs, int processId) {
 
 		String configHome = "config";
 		String defaultKeyLoader = (String) configs.get("system.communication.defaultKeyLoader");
 		String signatureAlgorithm = (String) configs.get("system.communication.signatureAlgorithm");
 		boolean defaultKeys = (((String) configs.get("system.communication.defaultkeys")).equalsIgnoreCase("true")) ? true : false;
 
+		//System.out.println("system.communication.signatureAlgorithm = " + signatureAlgorithm);
+		
+		//System.out.println(defaultKeyLoader);
+		
 		defaultKeys = false;
 
 		switch (defaultKeyLoader) {

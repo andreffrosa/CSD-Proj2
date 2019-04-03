@@ -49,7 +49,7 @@ public class Evaluation {
 		System.out.println("Average Transfer Time: " + avg_transfer_time + " tx/s");*/
 		
 		System.out.println("Starting evaluation...");
-		evaluate(1, 10, 1);
+		evaluate(1, 60, 1);
 	}
 	
 	private static void evaluate(int n_threads, long sec_duration, int n_wallets) {
@@ -69,7 +69,7 @@ public class Evaluation {
 	
 	private static void lauchThread(int thread_id, long sec_duration, int n_wallets, ConcurrentMap<String, String> results) {
 		new Thread( () -> {
-			System.out.println("Laucing thread " + thread_id + " ...");
+			System.out.println("Lauching thread " + thread_id + " ...");
 			executeTransfers(thread_id, sec_duration, n_wallets, results);
 		}).start();
 	}
@@ -101,12 +101,21 @@ public class Evaluation {
 					total_time += System.nanoTime() - start;
 					counter++;
 				}
+				
+				if(counter % 10 == 0) {
+					//long elapsed_seconds = sec_duration*1000*1000*1000 - (finish - System.nanoTime());
+					int progress = 100 - (int) Math.round((((double)(finish - System.nanoTime())) / (sec_duration*1000*1000*1000))*100.0);
+					System.out.println("Progress: " + progress + " %");
+				}
 			}
 		} catch(InvalidAddressException | InvalidAmountException | InvalidSignatureException | NotEnoughMoneyException e) {
 			e.printStackTrace();
 		}
 		
-		double avg_transfers_second = ((double) counter) / (sec_duration*1000*1000*1000);
+		System.out.println("("+thread_id +") " + "Total Transfers: " + counter + " tx");
+		results.put("("+thread_id +") " + "Total Transfers: ", "" + counter);
+		
+		double avg_transfers_second = ((double) counter) / sec_duration;
 		System.out.println("("+thread_id +") " + "Average Transfers per Second: " + avg_transfers_second + " tx/s");
 		results.put("("+thread_id +") " + "Average Transfers per Second: ", "" + avg_transfers_second);
 		

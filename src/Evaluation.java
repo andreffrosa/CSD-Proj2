@@ -1,9 +1,11 @@
-import java.io.IOException;
+
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import rest.RESTWalletClient;
+import utils.Cryptography;
+import utils.IO;
 import wallet.Transaction;
 import wallet.Wallet;
 import wallet.client.WalletClient;
@@ -13,12 +15,13 @@ import wallet.exceptions.InvalidSignatureException;
 import wallet.exceptions.NotEnoughMoneyException;
 
 public class Evaluation {
-
-	private static final String ADMIN_PUB_KEY = "MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEQOC5YdvESUZnej0W2N00UC7eUsfeEUYWr6y3bQkZPFN3+bzKZxqVRGOEGe7+3rD5";
-	private static final String ADMIN_PRIV_KEY = "MHsCAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQEEYTBfAgEBBBgDXK95Al4rQHdvRSTP8D7GfNYMmPq9z02gCgYIKoZIzj0DAQGhNAMyAARA4Llh28RJRmd6PRbY3TRQLt5Sx94RRhavrLdtCRk8U3f5vMpnGpVEY4QZ7v7esPk=";
-
-	private static final String[] servers = new String[] { "https://localhost:8080/", "https://localhost:8081/",
-			"https://localhost:8082/", "https://localhost:8083/" };
+	
+	private static final String ADMINS_DIRECTORY = "./admins/";
+	
+	private static final String ADMIN_PUB_KEY = Cryptography.loadKeys(ADMINS_DIRECTORY, "publicKey").get(0);
+	private static final String ADMIN_PRIV_KEY = Cryptography.loadKeys(ADMINS_DIRECTORY, "privateKey").get(0);
+	
+	private static final String[] servers = (String[]) IO.loadObject("./servers.json", String[].class);
 
 	public static void main(String[] args) throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
 		
@@ -62,7 +65,6 @@ public class Evaluation {
 			try {
 				threads[i].join();
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -71,7 +73,6 @@ public class Evaluation {
 	}
 	
 	private static void processResults(int n_threads, ConcurrentMap<String, String> results) {
-		// TODO
 		double total_transfers = 0.0;
 		double avg_transfers_second = 0.0;
 		double avg_transfer_time = 0.0;
@@ -89,7 +90,6 @@ public class Evaluation {
 			}
 		}
 		
-		//total_transfers /= n_threads;
 		avg_transfers_second /= n_threads;
 		avg_transfer_time /= n_threads;
 		

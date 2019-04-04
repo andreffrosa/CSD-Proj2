@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import utils.Cryptography;
 import wallet.exceptions.InvalidAddressException;
 import wallet.exceptions.InvalidAmountException;
 import wallet.exceptions.InvalidSignatureException;
@@ -11,27 +12,15 @@ import wallet.exceptions.NotEnoughMoneyException;
 
 public class SimpleWallet implements Wallet {
 
-	private static final String ADMIN_PUB_KEY = "MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEQOC5YdvESUZnej0W2N00UC7eUsfeEUYWr6y3bQkZPFN3+bzKZxqVRGOEGe7+3rD5";
-	//private static final String ADMIN_PRIV_KEY = "MHsCAQAwEwYHKoZIzj0CAQYIKoZIzj0DAQEEYTBfAgEBBBgDXK95Al4rQHdvRSTP8D7GfNYMmPq9z02gCgYIKoZIzj0DAQGhNAMyAARA4Llh28RJRmd6PRbY3TRQLt5Sx94RRhavrLdtCRk8U3f5vMpnGpVEY4QZ7v7esPk=";
+	private static final String ADMINS_DIRECTORY = "./admins/";
 	
 	private Map<String, Double> accounts;
-	//private List<String> admins;
-
+	private List<String> admins;
+	
 	public SimpleWallet() {
 		accounts = new HashMap<>();
-		//admins = loadAdmins("");
+		admins = Cryptography.loadKeys(ADMINS_DIRECTORY, "publicKey");
 	}
-
-	/*private List<String> loadAdmins(String path) {
-		//List<String> admins = new ArrayList<>(1);
-
-		//TODO: Fazer load dos admins
-
-		//temp
-		admins.add("god");
-
-		return admins;
-	}*/
 
 	private double createMoney(String who, double amount) {
 		Double old = accounts.get(who);
@@ -49,8 +38,7 @@ public class SimpleWallet implements Wallet {
 	}
 
 	private boolean isAdmin(String address) {
-		//return admins.contains(address);
-		return address.equals(ADMIN_PUB_KEY);
+		return admins.contains(address);
 	}
 
 	@Override

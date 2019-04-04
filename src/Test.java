@@ -19,7 +19,7 @@ public class Test {
 			"https://localhost:8082/", "https://localhost:8083/" };
 	
 	public static void main(String[] args) throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
-		//testTransferences();
+		testTransferences();
 		
 		testExceptions();
 		

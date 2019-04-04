@@ -8,8 +8,10 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -32,13 +34,15 @@ public class BFTWalletServer extends DefaultRecoverable {
 	private ServiceReplica replica;
 	private Logger logger;
 
+	private Map<String, Entry<Long, byte[]>> results;
+
 	public BFTWalletServer(int id) {
 		this(id, false);
 	}
-	
+
 	public BFTWalletServer(int id, boolean byzantine) {
 		replica = new ServiceReplica(id, this, this);
-		
+
 		if(byzantine)
 			wallet = new ByzantineWallet();
 		else
@@ -47,6 +51,8 @@ public class BFTWalletServer extends DefaultRecoverable {
 		iterations = 0;
 
 		logger = Logger.getLogger(BFTWalletServer.class.getName());
+
+		results = new HashMap<>();
 
 		System.out.println("publicKey: " + java.util.Base64.getEncoder().encodeToString(replica.getReplicaContext().getStaticConfiguration().getPublicKey().getEncoded()));
 	}
@@ -59,9 +65,21 @@ public class BFTWalletServer extends DefaultRecoverable {
 		new BFTWalletServer(Integer.parseInt(args[0]));
 	}
 
+	private byte[] chechResults(String hash) {
+		// verify if the operation was already executed
+		Entry<Long, byte[]> e = results.get(hash);
+		if(e != null) {
+			return e.getValue();
+		}
+
+		return null;
+	}
+
 	private byte[] executeSingle(byte[] command, MessageContext msgCtxs) {
 		byte[] reply = null;
 		boolean hasReply = false;
+		boolean cached = false;
+		byte[] val = null;
 
 		iterations++;
 
@@ -77,64 +95,81 @@ public class BFTWalletServer extends DefaultRecoverable {
 				String to = objIn.readUTF();
 				double amount = objIn.readDouble();
 				String signature = objIn.readUTF();
+				long nonce = objIn.readLong();
 
-				boolean result = false;
+				Transaction t = new Transaction(from, to, amount, signature, true, nonce);
 
-				try {
-					result = wallet.transfer(new Transaction(from, to, amount, signature, true));
+				val = chechResults(t.getDigestString());
+				cached = (val != null);
+				if(!cached) {
+					boolean result = false;
 
-					objOut.writeObject(BFTWalletResultType.OK);
-					objOut.writeObject(new Boolean(result));
-					//objOut.writeBoolean(result);
-				} catch (InvalidAddressException e) {
-					objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-					objOut.writeObject(e.getMessage());
-					//objOut.writeUTF(e.getMessage());
-				} catch (InvalidAmountException e) {
-					objOut.writeObject(BFTWalletResultType.INVALID_AMOUNT);
-					objOut.writeObject(e.getMessage());
-					//objOut.writeUTF(e.getMessage());
-				} catch (InvalidSignatureException e) {
-					objOut.writeObject(BFTWalletResultType.INVALID_SIGNATURE);
-					objOut.writeObject(e.getMessage());
-					//objOut.writeUTF(e.getMessage());
-				} catch (NotEnoughMoneyException e) {
-					objOut.writeObject(BFTWalletResultType.NOT_ENOUGH_MONEY);
-					objOut.writeObject(e.getMessage());
-					//objOut.writeUTF(e.getMessage());
-				}
+					try {
+						result = wallet.transfer(t);
 
-				hasReply = true;
+						objOut.writeObject(BFTWalletResultType.OK);
+						objOut.writeObject(new Boolean(result));
+						//objOut.writeBoolean(result);
+					} catch (InvalidAddressException e) {
+						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
+						objOut.writeObject(e.getMessage());
+						//objOut.writeUTF(e.getMessage());
+					} catch (InvalidAmountException e) {
+						objOut.writeObject(BFTWalletResultType.INVALID_AMOUNT);
+						objOut.writeObject(e.getMessage());
+						//objOut.writeUTF(e.getMessage());
+					} catch (InvalidSignatureException e) {
+						objOut.writeObject(BFTWalletResultType.INVALID_SIGNATURE);
+						objOut.writeObject(e.getMessage());
+						//objOut.writeUTF(e.getMessage());
+					} catch (NotEnoughMoneyException e) {
+						objOut.writeObject(BFTWalletResultType.NOT_ENOUGH_MONEY);
+						objOut.writeObject(e.getMessage());
+						//objOut.writeUTF(e.getMessage());
+					}
 
-				System.out.println("(" + iterations + ") transfer(" + from + ", " + to + ", " + amount + ") : " + result);
+					hasReply = true;
+
+					System.out.println("(" + iterations + ") transfer(" + from + ", " + to + ", " + amount + ", " + nonce + ", " + signature + ") : " + result);
+				} 
 
 				break;
 			case ATOMIC_TRANSFER_MONEY:
 				@SuppressWarnings("unchecked") List<Transaction> transactions = (List<Transaction>) objIn.readObject();
-				
-				result = false;
-				try {
-					result = wallet.atomicTransfer(transactions);
 
-					objOut.writeObject(BFTWalletResultType.OK);
-					objOut.writeBoolean(result);
-				} catch (InvalidAddressException e) {
-					objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-					objOut.writeUTF(e.getMessage());
-				} catch (InvalidAmountException e) {
-					objOut.writeObject(BFTWalletResultType.INVALID_AMOUNT);
-					objOut.writeUTF(e.getMessage());
-				} catch (InvalidSignatureException e) {
-					objOut.writeObject(BFTWalletResultType.INVALID_SIGNATURE);
-					objOut.writeUTF(e.getMessage());
-				} catch (NotEnoughMoneyException e) {
-					objOut.writeObject(BFTWalletResultType.NOT_ENOUGH_MONEY);
-					objOut.writeUTF(e.getMessage());
+				String hash = "";
+				for(Transaction tx : transactions) {
+					hash += tx.getDigestString();
 				}
 
-				hasReply = true;
+				val = chechResults(hash);
+				cached = (val != null);
+				if(!cached) {
 
-				System.out.println("(" + iterations + ") atomicTransfer(...) : " + result);
+					boolean result = false;
+					try {
+						result = wallet.atomicTransfer(transactions);
+
+						objOut.writeObject(BFTWalletResultType.OK);
+						objOut.writeBoolean(result);
+					} catch (InvalidAddressException e) {
+						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
+						objOut.writeUTF(e.getMessage());
+					} catch (InvalidAmountException e) {
+						objOut.writeObject(BFTWalletResultType.INVALID_AMOUNT);
+						objOut.writeUTF(e.getMessage());
+					} catch (InvalidSignatureException e) {
+						objOut.writeObject(BFTWalletResultType.INVALID_SIGNATURE);
+						objOut.writeUTF(e.getMessage());
+					} catch (NotEnoughMoneyException e) {
+						objOut.writeObject(BFTWalletResultType.NOT_ENOUGH_MONEY);
+						objOut.writeUTF(e.getMessage());
+					}
+
+					hasReply = true;
+
+					System.out.println("(" + iterations + ") atomicTransfer(...) : " + result);
+				}
 
 				break;
 			case CURRENT_BALANCE:
@@ -165,11 +200,13 @@ public class BFTWalletServer extends DefaultRecoverable {
 				objOut.flush();
 				byteOut.flush();
 				reply = byteOut.toByteArray();
+			} else if(cached) {
+				reply = val;
 			} else {
 				reply = new byte[0];
 			}
 
-		} catch (IOException | ClassNotFoundException /*| InvalidNumberException*/ e) {
+		} catch (IOException | ClassNotFoundException e) {
 			logger.log(Level.SEVERE, "Ocurred during wallet operation execution", e);
 		}
 

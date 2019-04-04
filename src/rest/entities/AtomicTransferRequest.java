@@ -33,7 +33,6 @@ public class AtomicTransferRequest implements Serializable {
 	public List<Transaction> deserialize() {
 		Gson gson = new GsonBuilder().create();
 		
-		//List<String> temp = new GsonBuilder().create().fromJson(transactions, ArrayList.class);
 		List<Transaction> l = new ArrayList<Transaction>(transactions.length);
 		
 		for(String json : transactions) {

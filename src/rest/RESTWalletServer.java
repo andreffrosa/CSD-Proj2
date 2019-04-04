@@ -39,19 +39,19 @@ public class RESTWalletServer {
 
 		int id = Integer.parseInt(args[0]);
 		
-		boolean authenticate_clients = false;
+		boolean byzantine = false;
 		if( args.length > 1) {
-			authenticate_clients = Boolean.parseBoolean(args[1]);
+			byzantine = Boolean.parseBoolean(args[1]);
+		}
+		
+		boolean authenticate_clients = false;
+		if( args.length > 2) {
+			authenticate_clients = Boolean.parseBoolean(args[2]);
 		}
 		
 		int port = 8080 + id;
-		if( args.length > 2) {
-			port = Integer.parseInt(args[2]);
-		}
-		
-		boolean byzantine = false;
 		if( args.length > 3) {
-			byzantine = Boolean.parseBoolean(args[3]);
+			port = Integer.parseInt(args[3]);
 		}
 
 		DistributedWallet wallet = new BFTReplicatedWallet(id, byzantine);
@@ -81,7 +81,7 @@ public class RESTWalletServer {
 		
 		server.start();
 
-		System.out.println("REST Wallet Server ready @ " + baseUri + " Client Authentication: " + authenticate_clients);
+		System.out.println("REST Wallet Server ready @ " + baseUri + " Client Authentication: " + authenticate_clients + " Byzantine: " + byzantine);
 	}
 
 }

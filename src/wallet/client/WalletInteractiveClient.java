@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 
 import rest.RESTWalletClient;
 import utils.Cryptography;
+import utils.IO;
 import wallet.Transaction;
 import wallet.Wallet;
 import wallet.exceptions.InvalidAddressException;
@@ -31,11 +32,9 @@ public class WalletInteractiveClient {
 
 	public static void main(String[] args) {
 
-		Wallet wallet = new RESTWalletClient(new String[] {"https://localhost:8080/", "https://localhost:8081/", "https://localhost:8082/", "https://localhost:8083/"});
+		Wallet wallet = new RESTWalletClient((String[]) IO.loadObject("./servers.json", String[].class));
 		Console console = System.console();
 		
-		
-		// temp
 		KeyPair kp = Cryptography.genKeys();
 		String privateKey = Cryptography.getPrivateKey(kp);
 		String publicKey = Cryptography.getPublicKey(kp);
@@ -54,12 +53,7 @@ public class WalletInteractiveClient {
 		String admin_pubkey = "MEkwEwYHKoZIzj0CAQYIKoZIzj0DAQEDMgAEQOC5YdvESUZnej0W2N00UC7eUsfeEUYWr6y3bQkZPFN3+bzKZxqVRGOEGe7+3rD5";
 
 		while(!exit) {
-			/*System.out.println("Available operations: ");
-			System.out.println("-1 - Exit");
-			System.out.println(" 0 - Help");
-			System.out.println(" 1 - Create Money");
-			System.out.println(" 2 - Transfer");
-			System.out.println(" 3 - Current Money");*/
+
 			try {
 				System.out.println("");
 

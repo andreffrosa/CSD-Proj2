@@ -19,6 +19,7 @@ import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 
 import bft.BFTReply;
+import bft.InvalidRepliesException;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
 import rest.entities.TransferRequest;
@@ -65,33 +66,35 @@ public class RESTWalletClient implements Wallet {
 
 	private <T> T processRequest(RequestHandler<T> requestHandler) {
 
-		List<String> servers = new ArrayList<>(Arrays.asList(this.servers));
+		List<String> replicas = new ArrayList<>(Arrays.asList(this.servers));
 		int index = -1;
 
 		for (int current_try = 0; current_try < MAX_TRIES; current_try++) {
 
-			if(servers.isEmpty()) {
-				logger.log(Level.WARNING, String.format("Aborted request! All the servers didn't respond..."));
-				return null;
+			if(replicas.isEmpty()) {
+				//logger.log(Level.WARNING, String.format("Aborted request! All the servers didn't respond..."));
+				//return null;
+				throw new RuntimeException("Aborted request! All the servers didn't respond...");
 			}
 
-			index = (int) Math.floor(Math.random()*servers.size());
+			index = (int) Math.floor(Math.random()*replicas.size());
 
 			try {
-				return requestHandler.execute(servers.get(index));
-			} catch (ProcessingException e) {
-				if( e.getMessage().contains("java.net.ConnectException")  /*|| e.getMessage().contains("java.net.SocketTimeoutException")*/ ) {
-					logger.log(Level.INFO, String.format("Error contacting server %s .... retry: %d", servers.get(index), current_try));
-					servers.remove(index); 
+				return requestHandler.execute(replicas.get(index));
+			} catch (ProcessingException | InvalidRepliesException e) {
+				if( e.getMessage().contains("java.net.ConnectException") || e.getMessage().contains("java.net.SocketTimeoutException") || e instanceof InvalidRepliesException) {
+					logger.log(Level.INFO, String.format("Error contacting server %s .... retry: %d", replicas.get(index), current_try));
+					replicas.remove(index); 
 				} else {
 					e.printStackTrace();
-					return null;
+					throw new RuntimeException(e.getMessage());
 				}
 			}
 		}
 
-		logger.log(Level.WARNING, String.format("Aborted request! Too many tries..."));
-		return null;
+		throw new RuntimeException("Aborted request! Too many tries...");
+		//logger.log(Level.WARNING, String.format("Aborted request! Too many tries..."));
+		//return null;
 	}
 
 	@Override
@@ -107,37 +110,18 @@ public class RESTWalletClient implements Wallet {
 
 		TransferRequest request = new TransferRequest(transaction);
 
-		byte[] result = processRequest((location) -> {			
+		BFTReply reply = processRequest((location) -> {			
 			Response response = client.target(location).path(DistributedWallet.PATH + "/transfer/")
 					.request().post(Entity.entity(request, MediaType.APPLICATION_JSON));
 
 			if (response.getStatus() == 200) {
-				return (byte[]) response.readEntity(byte[].class);
+				byte[] result = (byte[]) response.readEntity(byte[].class);
+				return BFTReply.processReply(result);
 			} else
 				throw new RuntimeException("WalletClient Transfer: " + response.getStatus());
 		});
 
-		BFTReply r = BFTReply.processReply(result);
-		if( r != null ) {
-			if( r.isException() ) {
-				String msg = (String) r.getContent();
-				switch(r.getResultType()) {
-				case INVALID_ADDRESS:
-					throw new InvalidAddressException(msg);
-				case INVALID_AMOUNT:
-					throw new InvalidAmountException(msg);
-				case INVALID_SIGNATURE:
-					throw new InvalidSignatureException(msg);
-				case NOT_ENOUGH_MONEY:
-					throw new NotEnoughMoneyException(msg);
-				default:
-					break;
-				}
-			} else {
-				return (Boolean) r.getContent();
-			}	
-		}
-		throw new RuntimeException("Replies are not valid!");
+		return (Boolean) reply.getResult();
 	}
 
 	@Override
@@ -145,37 +129,18 @@ public class RESTWalletClient implements Wallet {
 
 		AtomicTransferRequest request = new AtomicTransferRequest(transactions);
 
-		byte[] result = processRequest((location) -> {			
+		BFTReply reply = processRequest((location) -> {			
 			Response response = client.target(location).path(DistributedWallet.PATH + "/atomicTransfer/")
 					.request().post(Entity.entity(request, MediaType.APPLICATION_JSON));
 
 			if (response.getStatus() == 200) {
-				return (byte[]) response.readEntity(byte[].class);
+				byte[] result = (byte[]) response.readEntity(byte[].class);
+				return BFTReply.processReply(result);
 			} else
 				throw new RuntimeException("WalletClient atomicTransfer: " + response.getStatus());
 		});
 
-		BFTReply r = BFTReply.processReply(result);
-		if( r != null ) {
-				if( r.isException() ) {
-					String msg = (String) r.getContent();
-					switch(r.getResultType()) {
-					case INVALID_ADDRESS:
-						throw new InvalidAddressException(msg);
-					case INVALID_AMOUNT:
-						throw new InvalidAmountException(msg);
-					case INVALID_SIGNATURE:
-						throw new InvalidSignatureException(msg);
-					case NOT_ENOUGH_MONEY:
-						throw new NotEnoughMoneyException(msg);
-					default:
-						break;
-					}
-				} else {
-					return (Boolean) r.getContent();
-				}	
-			}
-		throw new RuntimeException("Replies are not valid!");
+		return (Boolean) reply.getResult();
 	}
 
 	@Override
@@ -183,42 +148,36 @@ public class RESTWalletClient implements Wallet {
 
 		BalanceRequest request = new BalanceRequest(who);
 
-		byte[] reply = processRequest((location) -> {
+		BFTReply reply = processRequest((location) -> {
 			Response response = client.target(location).path(DistributedWallet.PATH + "/balance/")
 					.request().post(Entity.entity(request, MediaType.APPLICATION_JSON));
 
 			if (response.getStatus() == 200) {
-				return (byte[]) response.readEntity(byte[].class);
+				byte[] result = (byte[]) response.readEntity(byte[].class);
+				return BFTReply.processReply(result);
 			} else
 				throw new RuntimeException("WalletClient currentAmount: " + response.getStatus());
 		});
 
-		BFTReply r = BFTReply.processReply(reply);
-		if( r != null ) {
-				return (Double) r.getContent();
-		}
-		throw new RuntimeException("Replies are not valid!");
+		return (Double) reply.getContent();
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public Map<String, Double> ledger() {
 
-		byte[] reply = processRequest((location) -> {
+		BFTReply reply = processRequest((location) -> {
 			Response response = client.target(location).path(DistributedWallet.PATH + "/ledger/")
 					.request().get();
 
 			if (response.getStatus() == 200) {
-				return (byte[]) response.readEntity(byte[].class);
+				byte[] result = (byte[]) response.readEntity(byte[].class);
+				return BFTReply.processReply(result);
 			} else
 				throw new RuntimeException("WalletClient ledger: " + response.getStatus());
 		});
 
-		BFTReply r = BFTReply.processReply(reply);
-		if( r != null ) {
-				return (Map<String, Double>) r.getContent();
-		}
-		throw new RuntimeException("Replies are not valid!");
+		return (Map<String, Double>) reply.getContent();
 	}
 
 }

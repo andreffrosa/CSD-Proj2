@@ -15,18 +15,28 @@ public class Transaction implements Serializable {
 	private String to;
 	private double amount;
 	private String signature;
+	private long nonce;
 	
 	public Transaction(String from, String to, double amount, String privKey) {
-		this(from, to, amount, privKey, false);
+		this(from, to, amount, privKey, false, Cryptography.getNonce());
+	}
+	
+	public Transaction(String from, String to, double amount, String privKey, long nonce) {
+		this(from, to, amount, privKey, false, nonce);
 	}
 	
 	public Transaction(String from, String to, double amount, String privKeyOrSignature, boolean signed) {
+		this(from, to, amount, privKeyOrSignature, signed, Cryptography.getNonce());
+	}
+	
+	public Transaction(String from, String to, double amount, String privKeyOrSignature, boolean signed, long nonce) {
 		this.from = from;
 		this.to = to;
 		this.amount = amount;
+		this.nonce = nonce;
 		
 		if(signed)
-			this.signature = privKeyOrSignature; //signature
+			this.signature = privKeyOrSignature; // signature
 		else
 			this.signature = sign(privKeyOrSignature); // privKey
 	}
@@ -53,8 +63,16 @@ public class Transaction implements Serializable {
 		return signature;
 	}
 	
+	public long getNonce() {
+		return nonce;
+	}
+	
 	public byte[] getDigest() {
-		return (from + to + amount).getBytes();
+		return (from + to + amount + nonce).getBytes();
+	}
+	
+	public String getDigestString() {
+		return java.util.Base64.getEncoder().encodeToString(this.getDigest());
 	}
 	
 	public boolean isValid() {

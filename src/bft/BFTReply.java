@@ -25,6 +25,10 @@ import bftsmart.reconfiguration.util.ECDSAKeyLoader;
 import bftsmart.reconfiguration.util.RSAKeyLoader;
 import bftsmart.reconfiguration.util.SunECKeyLoader;
 import bftsmart.tom.util.KeyLoader;
+import wallet.exceptions.InvalidAddressException;
+import wallet.exceptions.InvalidAmountException;
+import wallet.exceptions.InvalidSignatureException;
+import wallet.exceptions.NotEnoughMoneyException;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BFTReply implements java.io.Serializable {
@@ -40,17 +44,14 @@ public class BFTReply implements java.io.Serializable {
 	public BFTReply() {}
 
 	public BFTReply(Object content, BFTWalletResultType result_type) {
-		/*this.replies = replies;
-		this.signatures = signatures;
-		this.ids = ids;*/
 		this.content = content;
 		this.result_type = result_type;
 	}
 
-	public static BFTReply processReply( byte[] reply ) {
+	public static BFTReply processReply( byte[] reply ) throws InvalidRepliesException {
 
 		if (reply == null || reply.length == 0) {
-			return null;
+			throw new InvalidRepliesException("Empty Reply");
 		}
 
 		try (ByteArrayInputStream byteIn = new ByteArrayInputStream(reply);
@@ -61,8 +62,6 @@ public class BFTReply implements java.io.Serializable {
 			byte[][] contents = new byte[n_replies][];
 			byte[][] signatures = new byte[n_replies][];
 			int[] ids =  new int[n_replies];
-
-			//System.out.println(n_replies);
 
 			for(int i = 0; i < n_replies; i++) {
 				ids[i] = (int) objIn.readInt();
@@ -79,31 +78,23 @@ public class BFTReply implements java.io.Serializable {
 		return null;
 	}
 
-	private static BFTReply chooseValid(int n_replies, int[] ids, byte[][] contents, byte[][] signatures) {
-
-		//System.out.println("Choosing the valid...");
-
+	private static BFTReply chooseValid(int n_replies, int[] ids, byte[][] contents, byte[][] signatures) throws InvalidRepliesException {
+		
 		Map<String, Integer> aux = new HashMap<>(n_replies);
 
 		for(int i = 0; i < n_replies; i++) {
-			// Verificar se assinatura é válida
+			// Verify if the signature is valid
 			if( validSignature(ids[i], contents[i], signatures[i]) ) {
 				String hash = java.util.Base64.getEncoder().encodeToString(contents[i]);
-				//System.out.println(hash);
+				
 				Integer count = aux.get(hash);
 				if(count == null) {
 					count = new Integer(0);
 				}
 
 				aux.put(hash, new Integer(count.intValue()+1));
-				//System.out.println("aux size " + aux.size());
 			}
 		}
-
-		/*System.out.println("replies sorted " + aux.size());
-		for( Entry<String, Integer> e : aux.entrySet() ) {
-			System.out.println("Counter: " + e.getValue());
-		}*/
 
 		// Choose the reply with more repetions and without ties
 		String choosen = null;
@@ -118,8 +109,6 @@ public class BFTReply implements java.io.Serializable {
 				tie = true;
 			}
 		}
-		//System.out.println("max " + max + " tie " + tie);
-
 		if(choosen != null && !tie) {
 			byte[] content = java.util.Base64.getDecoder().decode(choosen);
 
@@ -129,32 +118,24 @@ public class BFTReply implements java.io.Serializable {
 				BFTWalletResultType result_status = (BFTWalletResultType) objIn.readObject();
 				Object value = objIn.readObject();
 
-				//System.out.println("return new BFTReply;");
-
 				return new BFTReply(value, result_status);
 			} catch (IOException | ClassNotFoundException e) {
 				e.printStackTrace();
 			} 
 		}
-		//System.out.println("return null;");
-
-		return null;
+		
+		throw new InvalidRepliesException("No majority on replies");
 	}
 	private static boolean validSignature(int id, byte[] content, byte[] signature) {
 		Map<String, String> configs = loadConfig();
 		try {
 			KeyLoader keyLoader = getKeyloader(configs, id);
 			PublicKey pk = keyLoader.loadPublicKey(id);
-			
-			//String k = java.util.Base64.getEncoder().encodeToString(pk.getEncoded());
-			//System.out.println("pubKey: " + k);
-			
+
 			if( !verifySignature(configs, pk, content, signature) ) {
-				//System.out.println(id + "'s signature is invalid!");
 				return false;
 			}
-			
-			//System.out.println(id + "'s signature is valid!");
+
 			return true;
 		} catch (NoSuchAlgorithmException | InvalidKeySpecException | CertificateException | IOException e) {
 			e.printStackTrace();
@@ -181,6 +162,28 @@ public class BFTReply implements java.io.Serializable {
 
 	public Object getContent() {
 		return this.content;
+	}
+
+	public Object getResult() throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
+
+		if( this.isException() ) {
+			String msg = (String) this.getContent();
+
+			switch(this.getResultType()) {
+			case INVALID_ADDRESS:
+				throw new InvalidAddressException(msg);
+			case INVALID_AMOUNT:
+				throw new InvalidAmountException(msg);
+			case INVALID_SIGNATURE:
+				throw new InvalidSignatureException(msg);
+			case NOT_ENOUGH_MONEY:
+				throw new NotEnoughMoneyException(msg);
+			default:
+				break;
+			}
+		} 
+
+		return this.getContent();
 	}
 
 	public boolean isException() {
@@ -213,7 +216,6 @@ public class BFTReply implements java.io.Serializable {
 			fr.close();
 			rd.close();
 		} catch (Exception e) {
-			//LoggerFactory.getLogger(this.getClass()).error("Could not load configuration", e);
 			System.out.println("Could not load configuration" + e.getMessage());
 		}
 		return configs;
@@ -226,10 +228,6 @@ public class BFTReply implements java.io.Serializable {
 		String signatureAlgorithm = (String) configs.get("system.communication.signatureAlgorithm");
 		boolean defaultKeys = (((String) configs.get("system.communication.defaultkeys")).equalsIgnoreCase("true")) ? true : false;
 
-		//System.out.println("system.communication.signatureAlgorithm = " + signatureAlgorithm);
-		
-		//System.out.println(defaultKeyLoader);
-		
 		defaultKeys = false;
 
 		switch (defaultKeyLoader) {

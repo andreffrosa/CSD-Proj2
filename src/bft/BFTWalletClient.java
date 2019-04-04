@@ -31,6 +31,7 @@ public class BFTWalletClient {
 			objOut.writeUTF(t.getTo());
 			objOut.writeDouble(t.getAmount());
 			objOut.writeUTF(t.getSignature());
+			objOut.writeLong(t.getNonce());
 
 			objOut.flush();
 			byteOut.flush();

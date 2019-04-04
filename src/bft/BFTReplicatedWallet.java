@@ -1,6 +1,5 @@
 package bft;
 
-
 import rest.DistributedWallet;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
@@ -8,8 +7,9 @@ import rest.entities.TransferRequest;
 
 public class BFTReplicatedWallet implements DistributedWallet {
 
-	BFTWalletServer server;
-	BFTWalletClient wallet;
+	@SuppressWarnings("unused")
+	private BFTWalletServer server;
+	private BFTWalletClient wallet;	
 
 	public BFTReplicatedWallet(int id) {
 		this(id, false);
@@ -27,7 +27,6 @@ public class BFTReplicatedWallet implements DistributedWallet {
 	
 	@Override
 	public byte[] atomicTransfer(AtomicTransferRequest request) {
-		System.out.println("\noi\n");
 		return wallet.atomicTransfer(request.deserialize());
 	}
 

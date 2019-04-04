@@ -64,7 +64,7 @@ public class WalletClient {
 
 	public boolean transfer(String to, double amount) throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
 
-		// agrupar €€ suficiente de vários endereços
+		// Group enough money from multiple addresses
 		List<Transaction> transactions = new LinkedList<>();
 
 		Map<String, Entry<String, Double>> temp = new HashMap<>(used_addresses);
@@ -171,9 +171,4 @@ public class WalletClient {
 		return used_address;
 	}
 	
-	/*public double refresh(String address) {
-		//TODO
-		
-		return wallet.balance(address);
-	}*/
 }

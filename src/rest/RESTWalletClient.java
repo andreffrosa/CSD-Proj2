@@ -20,6 +20,7 @@ import org.glassfish.jersey.client.ClientProperties;
 
 import bft.BFTReply;
 import bft.InvalidRepliesException;
+import rest.entities.AbstractRestRequest;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
 import rest.entities.TransferRequest;
@@ -110,13 +111,15 @@ public class RESTWalletClient implements Wallet {
 
 		TransferRequest request = new TransferRequest(transaction);
 
+		String op_hash = OperationsHashUtil.transferHash(transaction.getFrom(), transaction.getTo(), transaction.getAmount(), transaction.getSignature(), request.getNonce());
+
 		BFTReply reply = processRequest((location) -> {			
 			Response response = client.target(location).path(DistributedWallet.PATH + "/transfer/")
 					.request().post(Entity.entity(request, MediaType.APPLICATION_JSON));
 
 			if (response.getStatus() == 200) {
 				byte[] result = (byte[]) response.readEntity(byte[].class);
-				return BFTReply.processReply(result);
+				return BFTReply.processReply(result, op_hash);
 			} else
 				throw new RuntimeException("WalletClient Transfer: " + response.getStatus());
 		});
@@ -128,6 +131,8 @@ public class RESTWalletClient implements Wallet {
 	public boolean atomicTransfer(List<Transaction> transactions) throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
 
 		AtomicTransferRequest request = new AtomicTransferRequest(transactions);
+		
+		String op_hash = OperationsHashUtil.atomicTransferHash(transactions, request.getNonce());
 
 		BFTReply reply = processRequest((location) -> {			
 			Response response = client.target(location).path(DistributedWallet.PATH + "/atomicTransfer/")
@@ -135,7 +140,7 @@ public class RESTWalletClient implements Wallet {
 
 			if (response.getStatus() == 200) {
 				byte[] result = (byte[]) response.readEntity(byte[].class);
-				return BFTReply.processReply(result);
+				return BFTReply.processReply(result, op_hash);
 			} else
 				throw new RuntimeException("WalletClient atomicTransfer: " + response.getStatus());
 		});
@@ -147,6 +152,8 @@ public class RESTWalletClient implements Wallet {
 	public double balance(String who) {
 
 		BalanceRequest request = new BalanceRequest(who);
+		
+		String op_hash = OperationsHashUtil.balanceHash(who, request.getNonce());
 
 		BFTReply reply = processRequest((location) -> {
 			Response response = client.target(location).path(DistributedWallet.PATH + "/balance/")
@@ -154,7 +161,7 @@ public class RESTWalletClient implements Wallet {
 
 			if (response.getStatus() == 200) {
 				byte[] result = (byte[]) response.readEntity(byte[].class);
-				return BFTReply.processReply(result);
+				return BFTReply.processReply(result, op_hash);
 			} else
 				throw new RuntimeException("WalletClient currentAmount: " + response.getStatus());
 		});
@@ -165,6 +172,17 @@ public class RESTWalletClient implements Wallet {
 	@SuppressWarnings("unchecked")
 	@Override
 	public Map<String, Double> ledger() {
+		
+		AbstractRestRequest request = new AbstractRestRequest() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public String serialize() {
+				return "" + this.getNonce();
+			}
+		};
+		
+		String op_hash = OperationsHashUtil.ledgerHash(request.getNonce());
 
 		BFTReply reply = processRequest((location) -> {
 			Response response = client.target(location).path(DistributedWallet.PATH + "/ledger/")
@@ -172,7 +190,7 @@ public class RESTWalletClient implements Wallet {
 
 			if (response.getStatus() == 200) {
 				byte[] result = (byte[]) response.readEntity(byte[].class);
-				return BFTReply.processReply(result);
+				return BFTReply.processReply(result, op_hash);
 			} else
 				throw new RuntimeException("WalletClient ledger: " + response.getStatus());
 		});

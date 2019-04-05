@@ -8,6 +8,7 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,7 @@ import java.util.logging.Logger;
 import bftsmart.tom.MessageContext;
 import bftsmart.tom.ServiceReplica;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
+import rest.OperationsHashUtil;
 import wallet.ByzantineWallet;
 import wallet.SimpleWallet;
 import wallet.Transaction;
@@ -29,6 +31,9 @@ import wallet.exceptions.NotEnoughMoneyException;
 
 public class BFTWalletServer extends DefaultRecoverable {
 
+	private static final long CACHED_TIME = 2*60*1000*1000*1000; // 2 minutos
+	private static final double GC_PROB = 0.3; 
+	
 	private Wallet wallet;
 	private int iterations;
 	private ServiceReplica replica;
@@ -65,7 +70,23 @@ public class BFTWalletServer extends DefaultRecoverable {
 		new BFTWalletServer(Integer.parseInt(args[0]));
 	}
 
+	private void garbageCollector() {
+		long now = System.nanoTime();
+		for(Entry<String, Entry<Long, byte[]>> e : new HashMap<>(results).entrySet()) {
+			long timestamp = e.getValue().getKey();
+			if( timestamp + CACHED_TIME <= now ) {
+				results.remove(e.getKey());
+			}
+		}
+	}
+	
 	private byte[] chechResults(String hash) {
+		
+		// Garbage Collector
+		if(Math.random() <= GC_PROB) {
+			garbageCollector();
+		}
+		
 		// verify if the operation was already executed
 		Entry<Long, byte[]> e = results.get(hash);
 		if(e != null) {
@@ -80,6 +101,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 		boolean hasReply = false;
 		boolean cached = false;
 		byte[] val = null;
+		String op_hash = null;
 
 		iterations++;
 
@@ -89,23 +111,25 @@ public class BFTWalletServer extends DefaultRecoverable {
 				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
 
 			BFTWalletRequestType reqType = (BFTWalletRequestType) objIn.readObject();
+			long nonce = objIn.readLong();
+
 			switch (reqType) {
 			case TRANSFER_MONEY:
 				String from = objIn.readUTF();
 				String to = objIn.readUTF();
 				double amount = objIn.readDouble();
 				String signature = objIn.readUTF();
-				long nonce = objIn.readLong();
 
-				Transaction t = new Transaction(from, to, amount, signature, true, nonce);
+				op_hash = OperationsHashUtil.transferHash(from, to, amount, signature, nonce);
 
-				val = chechResults(t.getDigestString());
+				val = chechResults(op_hash);
 				cached = (val != null);
 				if(!cached) {
 					boolean result = false;
 
 					try {
-						result = wallet.transfer(t);
+						objOut.writeObject(op_hash);
+						result = wallet.transfer(new Transaction(from, to, amount, signature, true));
 
 						objOut.writeObject(BFTWalletResultType.OK);
 						objOut.writeObject(new Boolean(result));
@@ -137,17 +161,15 @@ public class BFTWalletServer extends DefaultRecoverable {
 			case ATOMIC_TRANSFER_MONEY:
 				@SuppressWarnings("unchecked") List<Transaction> transactions = (List<Transaction>) objIn.readObject();
 
-				String hash = "";
-				for(Transaction tx : transactions) {
-					hash += tx.getDigestString();
-				}
+				op_hash = OperationsHashUtil.atomicTransferHash(transactions, nonce);
 
-				val = chechResults(hash);
+				val = chechResults(op_hash);
 				cached = (val != null);
 				if(!cached) {
 
 					boolean result = false;
 					try {
+						objOut.writeObject(op_hash);
 						result = wallet.atomicTransfer(transactions);
 
 						objOut.writeObject(BFTWalletResultType.OK);
@@ -175,35 +197,52 @@ public class BFTWalletServer extends DefaultRecoverable {
 			case CURRENT_BALANCE:
 				String who = objIn.readUTF();
 
-				double balance = wallet.balance(who);
+				op_hash = OperationsHashUtil.balanceHash(who, nonce);
+				val = chechResults(op_hash);
+				cached = (val != null);
+				if(!cached) {
 
-				objOut.writeObject(BFTWalletResultType.OK);
-				objOut.writeDouble(balance);
-				hasReply = true;
+					double balance = wallet.balance(who);
 
-				System.out.println("(" + iterations + ") balance(" + who + ") : " + balance);
+					objOut.writeObject(op_hash);
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeDouble(balance);
+					hasReply = true;
+
+					System.out.println("(" + iterations + ") balance(" + who + ") : " + balance);
+				}
 
 				break;
 			case GET_LEDGER:
-				Map<String, Double> ledger = wallet.ledger();
+				op_hash = OperationsHashUtil.ledgerHash(nonce);
+				val = chechResults(op_hash);
+				cached = (val != null);
+				if(!cached) {
+					Map<String, Double> ledger = wallet.ledger();
 
-				objOut.writeObject(BFTWalletResultType.OK);
-				objOut.writeObject(ledger);
-				hasReply = true;
+					objOut.writeObject(op_hash);
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeObject(ledger);
+					hasReply = true;
 
-				System.out.println("(" + iterations + ") ledger() : " + ledger.size());
+					System.out.println("(" + iterations + ") ledger() : " + ledger.size());
+				}
 
 				break;
 			}
-
-			if (hasReply) {
-				objOut.flush();
-				byteOut.flush();
-				reply = byteOut.toByteArray();
-			} else if(cached) {
+			
+			if(cached) {
 				reply = val;
 			} else {
-				reply = new byte[0];
+				if (hasReply) {
+					objOut.flush();
+					byteOut.flush();
+					reply = byteOut.toByteArray();
+				} else {
+					reply = new byte[0];
+				}
+				
+				results.put(op_hash, new AbstractMap.SimpleEntry<>(System.nanoTime(), reply));
 			}
 
 		} catch (IOException | ClassNotFoundException e) {
@@ -218,6 +257,9 @@ public class BFTWalletServer extends DefaultRecoverable {
 
 		byte[] reply = null;
 		boolean hasReply = false;
+		byte[] val = null;
+		boolean cached = false;
+		String op_hash = null;
 
 		// iterations++;
 
@@ -225,40 +267,62 @@ public class BFTWalletServer extends DefaultRecoverable {
 				ObjectInput objIn = new ObjectInputStream(byteIn);
 				ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
+			
 			BFTWalletRequestType reqType = (BFTWalletRequestType) objIn.readObject();
-
+			long nonce = objIn.readLong();
+			
 			switch (reqType) {
 			case CURRENT_BALANCE:
 				String who = objIn.readUTF();
 
-				double balance = wallet.balance(who);
+				op_hash = OperationsHashUtil.balanceHash(who, nonce);
+				val = chechResults(op_hash);
+				cached = (val != null);
+				if(!cached) {
 
-				objOut.writeObject(BFTWalletResultType.OK);
-				objOut.writeDouble(balance);
-				hasReply = true;
+					double balance = wallet.balance(who);
 
-				System.out.println("(" + iterations + ") currentAmount(" + who + ") : " + balance);
+					objOut.writeObject(op_hash);
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeDouble(balance);
+					hasReply = true;
+
+					System.out.println("(" + iterations + ") balance(" + who + ") : " + balance);
+				}
 
 				break;
 			case GET_LEDGER:
-				Map<String, Double> ledger = wallet.ledger();
+				op_hash = OperationsHashUtil.ledgerHash(nonce);
+				val = chechResults(op_hash);
+				cached = (val != null);
+				if(!cached) {
+					Map<String, Double> ledger = wallet.ledger();
 
-				objOut.writeObject(BFTWalletResultType.OK);
-				objOut.writeObject(ledger);
-				hasReply = true;
+					objOut.writeObject(op_hash);
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeObject(ledger);
+					hasReply = true;
 
-				System.out.println("(" + iterations + ") ledger() : " + ledger.size());
+					System.out.println("(" + iterations + ") ledger() : " + ledger.size());
+				}
 
 				break;
 			default:
 				logger.log(Level.WARNING, "in appExecuteUnordered only read operations are supported");
 			}
-			if (hasReply) {
-				objOut.flush();
-				byteOut.flush();
-				reply = byteOut.toByteArray();
+			
+			if(cached) {
+				reply = val;
 			} else {
-				reply = new byte[0];
+				if (hasReply) {
+					objOut.flush();
+					byteOut.flush();
+					reply = byteOut.toByteArray();
+				} else {
+					reply = new byte[0];
+				}
+				
+				results.put(op_hash, new AbstractMap.SimpleEntry<>(System.nanoTime(), reply));
 			}
 		} catch (IOException | ClassNotFoundException e) {
 			logger.log(Level.SEVERE, "Ocurred during wallet operation execution", e);

@@ -7,6 +7,7 @@ import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
@@ -28,6 +29,7 @@ public class Cryptography {
 	private static final String provider = "BC";
 	private static final String keyGenAlgorithm = "EC";
 	private static final String signatureAlgorithm = "SHA256withECDSA";
+	private static final String DIGEST_ALGORITHM = "SHA256";
 
 	public static KeyPair genKeys() {
 		KeyPair kp = null;
@@ -194,6 +196,32 @@ public class Cryptography {
 			String path = e.getValue();
 			storeKeyInFile(key, path);
 		}
+	}
+	
+	public static String computeHash(byte[] data) {
+		
+		try {
+			MessageDigest d = MessageDigest.getInstance(DIGEST_ALGORITHM);
+			d.update(data);
+			return java.util.Base64.getEncoder().encodeToString(d.digest());
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
+		
+		return java.util.Base64.getEncoder().encodeToString(data);
+	}
+	
+	public static String computeHash(String data) {
+		
+		try {
+			MessageDigest d = MessageDigest.getInstance(DIGEST_ALGORITHM);
+			d.update(data.getBytes());
+			return java.util.Base64.getEncoder().encodeToString(d.digest());
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
+		
+		return data;
 	}
 
 }

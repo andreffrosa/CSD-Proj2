@@ -47,8 +47,16 @@ public class BFTReply implements java.io.Serializable {
 		this.content = content;
 		this.result_type = result_type;
 	}
+	
+	public BFTWalletResultType getResult_type() {
+		return result_type;
+	}
+	
+	public Object getContent() {
+		return this.content;
+	}
 
-	public static BFTReply processReply( byte[] reply ) throws InvalidRepliesException {
+	public static BFTReply processReply( byte[] reply, String op_hash) throws InvalidRepliesException {
 
 		if (reply == null || reply.length == 0) {
 			throw new InvalidRepliesException("Empty Reply");
@@ -70,7 +78,7 @@ public class BFTReply implements java.io.Serializable {
 			}
 
 			// Validate the replies
-			return chooseValid(n_replies, ids, contents, signatures);
+			return chooseValid(n_replies, ids, contents, signatures, op_hash);
 		} catch (IOException | ClassNotFoundException e) {
 			e.printStackTrace();
 		} 
@@ -78,7 +86,7 @@ public class BFTReply implements java.io.Serializable {
 		return null;
 	}
 
-	private static BFTReply chooseValid(int n_replies, int[] ids, byte[][] contents, byte[][] signatures) throws InvalidRepliesException {
+	private static BFTReply chooseValid(int n_replies, int[] ids, byte[][] contents, byte[][] signatures, String op_hash) throws InvalidRepliesException {
 		
 		Map<String, Integer> aux = new HashMap<>(n_replies);
 
@@ -115,10 +123,16 @@ public class BFTReply implements java.io.Serializable {
 			try (ByteArrayInputStream byteIn = new ByteArrayInputStream(content);
 					ObjectInput objIn = new ObjectInputStream(byteIn)) {
 
+				String op_hash_rcv = (String) objIn.readObject();
 				BFTWalletResultType result_status = (BFTWalletResultType) objIn.readObject();
 				Object value = objIn.readObject();
 
-				return new BFTReply(value, result_status);
+				if(op_hash_rcv.equals(op_hash)) {
+					return new BFTReply(value, result_status);
+				}
+				else
+					throw new InvalidRepliesException("Old reply");
+				
 			} catch (IOException | ClassNotFoundException e) {
 				e.printStackTrace();
 			} 
@@ -158,10 +172,6 @@ public class BFTReply implements java.io.Serializable {
 			e.printStackTrace();
 			return false;
 		}
-	}
-
-	public Object getContent() {
-		return this.content;
 	}
 
 	public Object getResult() throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {

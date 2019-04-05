@@ -1,6 +1,5 @@
 package rest.entities;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,7 +8,7 @@ import com.google.gson.GsonBuilder;
 
 import wallet.Transaction;
 
-public class AtomicTransferRequest implements Serializable {
+public class AtomicTransferRequest extends AbstractRestRequest {
 	
 	/**
 	 * 
@@ -41,4 +40,11 @@ public class AtomicTransferRequest implements Serializable {
 		
 		return l;
 	}
+
+	@Override
+	public String serialize() {
+		Gson gson = new GsonBuilder().create();
+		return gson.toJson(transactions);
+	}
+
 }

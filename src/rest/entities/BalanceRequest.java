@@ -1,6 +1,11 @@
 package rest.entities;
 
-public class BalanceRequest {
+public class BalanceRequest extends AbstractRestRequest {
+	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	
 	public String who;
 	
@@ -8,5 +13,10 @@ public class BalanceRequest {
 	
 	public BalanceRequest(String who) {
 		this.who = who;
+	}
+
+	@Override
+	public String serialize() {
+		return who;
 	}
 }

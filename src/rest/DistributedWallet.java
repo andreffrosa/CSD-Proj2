@@ -1,7 +1,6 @@
 package rest;
 
 import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -9,6 +8,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.omg.CosNaming.NamingContextExtPackage.InvalidAddress;
 
+import rest.entities.AbstractRestRequest;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
 import rest.entities.TransferRequest;
@@ -39,8 +39,9 @@ public interface DistributedWallet {
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	byte[] balance(BalanceRequest request);
 
-	@GET
+	@POST
 	@Path("/ledger")
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] ledger();
+	byte[] ledger(AbstractRestRequest request);
 }

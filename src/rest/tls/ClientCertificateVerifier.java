@@ -51,7 +51,7 @@ public class ClientCertificateVerifier {
 
 				@Override
 				public void checkClientTrusted(X509Certificate[] certs, String authType) {
-					System.err.println(certs[0].getSubjectX500Principal());
+					//System.err.println(certs[0].getSubjectX500Principal());
 				}
 
 				@Override

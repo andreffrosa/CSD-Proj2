@@ -81,7 +81,14 @@ public class RESTWalletServer {
 		
 		server.start();
 
-		System.out.println("REST Wallet Server ready @ " + baseUri + " Client Authentication: " + authenticate_clients + " Byzantine: " + byzantine);
+		System.out.println(
+				"\n\t#######################################################"
+		      + "\n\t    REST Wallet Server ready @ " + baseUri
+		      + "\n\t        Client Authentication: " + authenticate_clients
+		      + "\n\t                    Byzantine: " + byzantine
+			  + "\n\t#######################################################");
+		
+		//System.out.println("REST Wallet Server ready @ " + baseUri + " Client Authentication: " + authenticate_clients + " Byzantine: " + byzantine);
 	}
 
 }

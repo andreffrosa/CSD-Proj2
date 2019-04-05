@@ -28,7 +28,8 @@ public class ReplyExtractor implements Extractor {
 			ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 			ObjectOutput objOut = new ObjectOutputStream(byteOut);
 
-			objOut.writeInt(sameContent);
+			objOut.writeInt(sameContent); System.out.println("sameContent: " + sameContent);
+			System.out.println("replies.length: " + replies.length);
 
 			int written = 0;
 			for( int i = 0; i < replies.length && written < sameContent; i++ ) {
@@ -37,8 +38,10 @@ public class ReplyExtractor implements Extractor {
 					objOut.writeObject(replies[i].getContent());
 					objOut.writeObject(replies[i].serializedMessageSignature);
 					written++;
-				}
-			}
+					System.out.println("reply["+i+"] is not null");
+				} else
+					System.out.println("reply["+i+"] is null");
+			} System.out.println("written: " + written);
 			objOut.flush();
 			byteOut.flush();
 			

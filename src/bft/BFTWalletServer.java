@@ -54,7 +54,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 
 		results = new HashMap<>();
 
-		System.out.println("publicKey: " + java.util.Base64.getEncoder().encodeToString(replica.getReplicaContext().getStaticConfiguration().getPublicKey().getEncoded()));
+		System.out.println("publicKey: " + java.util.Base64.getEncoder().encodeToString(replica.getReplicaContext().getStaticConfiguration().getPublicKey(id).getEncoded()));
 	}
 
 	public static void main(String[] args) {

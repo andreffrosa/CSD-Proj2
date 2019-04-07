@@ -42,12 +42,12 @@ public class Evaluation {
 	private static int n_wallets = 1;
 	private static double initial_transfer_ratio = 0.0;
 	private static int n_exps = 3;
-	//private static double transfer_ratio_step = 0.25;
+	
 	private static double transfer_ratio_step = (1.0 - initial_transfer_ratio) / ((double) (n_exps - 1));
 
 	private static int progress_fraction = 20;
 	
-	private static String output_folder = "./tmp/";
+	private static String output_folder = "./";
 
 	public static void main(String[] args) throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
 		

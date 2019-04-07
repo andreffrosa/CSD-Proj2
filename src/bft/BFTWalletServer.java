@@ -173,19 +173,19 @@ public class BFTWalletServer extends DefaultRecoverable {
 						result = wallet.atomicTransfer(transactions);
 
 						objOut.writeObject(BFTWalletResultType.OK);
-						objOut.writeBoolean(result);
+						objOut.writeObject(result);
 					} catch (InvalidAddressException e) {
 						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-						objOut.writeUTF(e.getMessage());
+						objOut.writeObject(e.getMessage());
 					} catch (InvalidAmountException e) {
 						objOut.writeObject(BFTWalletResultType.INVALID_AMOUNT);
-						objOut.writeUTF(e.getMessage());
+						objOut.writeObject(e.getMessage());
 					} catch (InvalidSignatureException e) {
 						objOut.writeObject(BFTWalletResultType.INVALID_SIGNATURE);
-						objOut.writeUTF(e.getMessage());
+						objOut.writeObject(e.getMessage());
 					} catch (NotEnoughMoneyException e) {
 						objOut.writeObject(BFTWalletResultType.NOT_ENOUGH_MONEY);
-						objOut.writeUTF(e.getMessage());
+						objOut.writeObject(e.getMessage());
 					}
 
 					hasReply = true;

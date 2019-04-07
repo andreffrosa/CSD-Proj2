@@ -12,6 +12,7 @@ public class BalanceRequest extends AbstractRestRequest {
 	public BalanceRequest() {}
 	
 	public BalanceRequest(String who) {
+		super();
 		this.who = who;
 	}
 

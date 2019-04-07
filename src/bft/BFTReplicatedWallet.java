@@ -1,9 +1,9 @@
 package bft;
 
 import rest.DistributedWallet;
-import rest.entities.AbstractRestRequest;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
+import rest.entities.LedgerRequest;
 import rest.entities.TransferRequest;
 
 public class BFTReplicatedWallet implements DistributedWallet {
@@ -37,7 +37,7 @@ public class BFTReplicatedWallet implements DistributedWallet {
 	}
 
 	@Override
-	public byte[] ledger(AbstractRestRequest request) {
+	public byte[] ledger(LedgerRequest request) {
 		return wallet.ledger(request.getNonce());
 	}
 

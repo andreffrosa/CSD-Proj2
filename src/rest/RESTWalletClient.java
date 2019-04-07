@@ -20,9 +20,9 @@ import org.glassfish.jersey.client.ClientProperties;
 
 import bft.BFTReply;
 import bft.InvalidRepliesException;
-import rest.entities.AbstractRestRequest;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
+import rest.entities.LedgerRequest;
 import rest.entities.TransferRequest;
 import wallet.Transaction;
 import wallet.Wallet;
@@ -41,7 +41,7 @@ public class RESTWalletClient implements Wallet {
 	private static final String CLIENT_TRUSTSTORE_PWD = "CSD1819";
 
 	private final int MAX_TRIES = 5;
-	private final int CONNECT_TIMEOUT = 20000;
+	private final int CONNECT_TIMEOUT = 35000;
 	private final int READ_TIMEOUT = 30000;
 
 	// Private Variables
@@ -173,20 +173,13 @@ public class RESTWalletClient implements Wallet {
 	@Override
 	public Map<String, Double> ledger() {
 		
-		AbstractRestRequest request = new AbstractRestRequest() {
-			private static final long serialVersionUID = 1L;
-
-			@Override
-			public String serialize() {
-				return "" + this.getNonce();
-			}
-		};
+		LedgerRequest request = new LedgerRequest();
 		
 		String op_hash = OperationsHashUtil.ledgerHash(request.getNonce());
 
 		BFTReply reply = processRequest((location) -> {
 			Response response = client.target(location).path(DistributedWallet.PATH + "/ledger/")
-					.request().get();
+					.request().post(Entity.entity(request, MediaType.APPLICATION_JSON));
 
 			if (response.getStatus() == 200) {
 				byte[] result = (byte[]) response.readEntity(byte[].class);

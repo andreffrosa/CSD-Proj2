@@ -206,7 +206,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 
 					objOut.writeObject(op_hash);
 					objOut.writeObject(BFTWalletResultType.OK);
-					objOut.writeDouble(balance);
+					objOut.writeObject(balance);
 					hasReply = true;
 
 					System.out.println("(" + iterations + ") balance(" + who + ") : " + balance);
@@ -284,7 +284,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 
 					objOut.writeObject(op_hash);
 					objOut.writeObject(BFTWalletResultType.OK);
-					objOut.writeDouble(balance);
+					objOut.writeObject(balance);
 					hasReply = true;
 
 					System.out.println("(" + iterations + ") balance(" + who + ") : " + balance);

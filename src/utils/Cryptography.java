@@ -40,7 +40,7 @@ public class Cryptography {
 
 			kp = keyGen.generateKeyPair();
 
-		} catch(NoSuchAlgorithmException | NoSuchProviderException | InvalidAlgorithmParameterException e) {
+		} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidAlgorithmParameterException e) {
 			e.printStackTrace();
 		}
 
@@ -61,7 +61,8 @@ public class Cryptography {
 
 		try {
 			kf = (kf == null) ? KeyFactory.getInstance(keyGenAlgorithm, provider) : kf;
-			PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(java.util.Base64.getDecoder().decode(privateKey));
+			PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(
+					java.util.Base64.getDecoder().decode(privateKey));
 			return kf.generatePrivate(keySpecPKCS8);
 		} catch (NoSuchProviderException | InvalidKeySpecException | NoSuchAlgorithmException e) {
 			e.printStackTrace();
@@ -98,7 +99,7 @@ public class Cryptography {
 			String signature = java.util.Base64.getEncoder().encodeToString(signatureBytes);
 
 			return signature;
-		} catch(NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException | SignatureException e) {
+		} catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException | SignatureException e) {
 			e.printStackTrace();
 			throw new RuntimeException(e.getMessage());
 		}
@@ -118,9 +119,9 @@ public class Cryptography {
 			boolean valid = sig.verify(java.util.Base64.getDecoder().decode(signature));
 
 			return valid;
-		} catch(InvalidKeyException | SignatureException e) {
+		} catch (InvalidKeyException | SignatureException e) {
 			return false;
-		} catch(NoSuchAlgorithmException | NoSuchProviderException e) {
+		} catch (NoSuchAlgorithmException | NoSuchProviderException e) {
 			throw new RuntimeException(e.getMessage());
 		}
 	}
@@ -132,9 +133,9 @@ public class Cryptography {
 			kf.generatePublic(keySpecX509);
 
 			return true;
-		} catch(InvalidKeySpecException e) {
+		} catch (InvalidKeySpecException e) {
 			return false;
-		} catch(NoSuchAlgorithmException | NoSuchProviderException e) {
+		} catch (NoSuchAlgorithmException | NoSuchProviderException e) {
 			throw new RuntimeException(e.getMessage());
 		}
 	}
@@ -146,16 +147,15 @@ public class Cryptography {
 		try {
 			sr = java.security.SecureRandom.getInstance("sha1PRNG");
 
-			int size = Long.BYTES+1;
-			byte[] tmp = new byte[ size ];
-			sr.nextBytes( tmp );
+			int size = Long.BYTES + 1;
+			byte[] tmp = new byte[size];
+			sr.nextBytes(tmp);
 
 			ByteBuffer buffer = ByteBuffer.wrap(tmp);
-			//buffer.flip(); //need flip 
 			result = buffer.getLong();
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
-			result = Math.round(Math.random()*Long.MAX_VALUE);
+			result = Math.round(Math.random() * Long.MAX_VALUE);
 		}
 
 		return result;
@@ -172,7 +172,7 @@ public class Cryptography {
 	public static List<String> loadKeys(String path) {
 		return loadKeys(path, "");
 	}
-	
+
 	public static List<String> loadKeys(String path, String filter) {
 
 		File folder = new File(path);
@@ -181,25 +181,25 @@ public class Cryptography {
 		List<String> keys = new ArrayList<>(listOfFiles.length);
 
 		for (int i = 0; i < listOfFiles.length; i++) {
-			if (listOfFiles[i].isFile() && listOfFiles[i].getName().contains(filter) ) {
+			if (listOfFiles[i].isFile() && listOfFiles[i].getName().contains(filter)) {
 				String k = loadKeyInFile(listOfFiles[i].getPath());
 				keys.add(k);
-			} 
+			}
 		}
 		return keys;
 	}
-	
+
 	public static void storeKeys(Map<String, String> keys) {
-		
-		for( Entry<String, String> e : keys.entrySet() ) {
+
+		for (Entry<String, String> e : keys.entrySet()) {
 			String key = e.getKey();
 			String path = e.getValue();
 			storeKeyInFile(key, path);
 		}
 	}
-	
+
 	public static String computeHash(byte[] data) {
-		
+
 		try {
 			MessageDigest d = MessageDigest.getInstance(DIGEST_ALGORITHM);
 			d.update(data);
@@ -207,12 +207,12 @@ public class Cryptography {
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		}
-		
+
 		return java.util.Base64.getEncoder().encodeToString(data);
 	}
-	
+
 	public static String computeHash(String data) {
-		
+
 		try {
 			MessageDigest d = MessageDigest.getInstance(DIGEST_ALGORITHM);
 			d.update(data.getBytes());
@@ -220,7 +220,7 @@ public class Cryptography {
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		}
-		
+
 		return data;
 	}
 

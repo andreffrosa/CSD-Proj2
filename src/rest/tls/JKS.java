@@ -6,7 +6,7 @@ import java.security.KeyStore;
 
 public class JKS {
 
-	public static KeyStore load( String filename, String password ) throws Exception {
+	public static KeyStore load(String filename, String password) throws Exception {
 		try (InputStream ksIs = new FileInputStream(filename)) {
 			KeyStore ks = KeyStore.getInstance("JKS");
 			ks.load(ksIs, password.toCharArray());

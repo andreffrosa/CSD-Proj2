@@ -7,6 +7,7 @@ import java.io.ObjectOutputStream;
 import java.util.List;
 
 import bft.BFTWalletRequestType;
+import bft.reply.ReplyExtractor;
 import bftsmart.tom.ServiceProxy;
 import wallet.Transaction;
 
@@ -33,7 +34,6 @@ public class BFTWalletClient {
 			objOut.writeDouble(t.getAmount());
 			objOut.writeUTF(t.getSignature());
 			
-
 			objOut.flush();
 			byteOut.flush();
 

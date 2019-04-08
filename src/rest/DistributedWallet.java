@@ -24,13 +24,15 @@ public interface DistributedWallet {
 	@Path("/transfer")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] transfer(TransferRequest request) throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException;
-	
+	byte[] transfer(TransferRequest request)
+			throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException;
+
 	@POST
 	@Path("/atomicTransfer")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] atomicTransfer(AtomicTransferRequest request) throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException;
+	byte[] atomicTransfer(AtomicTransferRequest request)
+			throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException;
 
 	@POST
 	@Path("/balance")

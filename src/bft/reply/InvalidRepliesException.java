@@ -1,4 +1,4 @@
-package bft;
+package bft.reply;
 
 public class InvalidRepliesException extends Exception {
 
@@ -7,9 +7,9 @@ public class InvalidRepliesException extends Exception {
 	public InvalidRepliesException() {
 		super();
 	}
-	
+
 	public InvalidRepliesException(String message) {
 		super(message);
 	}
-	
+
 }

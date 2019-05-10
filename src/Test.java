@@ -1,10 +1,12 @@
 import replicaManager.ReplicaManagerRESTClient;
+import utils.Cryptography;
+import utils.IO;
 
 public class Test {
 	// Temp
 	public static void main(String args[]) {
 		String fileName = "./target/CSD-Proj-0.0.1-SNAPSHOT-jar-with-dependencies.jar";
-		byte[] hash = "".getBytes();
+		byte[] hash = java.util.Base64.getDecoder().decode(Cryptography.computeHash(IO.loadFile(fileName)));
 		String className = "rest.RESTWalletServer";
 		String[] r_args = new String[] {"0"};
 

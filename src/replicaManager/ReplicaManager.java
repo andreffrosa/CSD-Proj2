@@ -5,19 +5,28 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import utils.Cryptography;
+import utils.IO;
+
 public class ReplicaManager implements ReplicaManagerService {
 
 	// 1 réplica apenas ou isto lança todas?
 	private Process process;
 
+	// TODO: meter para retornar boolean?
 	public void launch(LaunchRequest request) {
 
 		String fileName = request.fileName;
-		byte[] hash = request.getHash();
+		String hash = request.hash;
 		String className = request.className;
 		String[] args = request.getArgs();
 		
 		// TODO: verificar hash
+		String new_hash = Cryptography.computeHash(IO.loadFile(fileName));
+		if( !hash.equals(new_hash) ) {
+			System.err.println("The hashes are different!"); // TODO: O que fazer?
+			return;
+		}
 
 		String javaHome = System.getProperty("java.home");
         String javaBin = javaHome +

@@ -2,15 +2,30 @@ package utils;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 public class IO {
 
+	public static byte[] loadFile(String path) {
+		File file = new File(path);
+		
+		try {
+			return Files.readAllBytes(file.toPath());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return new byte[0];
+	}
+	
+	
 	public static String loadTextFile(String path) {
 		String text = null;
 		try {

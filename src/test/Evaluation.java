@@ -6,6 +6,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -44,43 +45,45 @@ public class Evaluation {
 	private static final long s_to_ns = 1000 * 1000 * 1000;
 
 	private static int n_runs = 1;
-	private static int n_threads = 6;
-	private static long sec_duration = 60;
+	private static int n_threads = 8;
+	private static long sec_duration = 180;
 	private static int n_wallets = 1;
-	private static double initial_transfer_ratio = 0.0;
-	private static int n_exps = 3;
 
-	private static double transfer_ratio_step = (1.0 - initial_transfer_ratio) / ((double) (n_exps - 1));
-
+	private static double[] transfer_ratios = {0.1, 0.5, 0.9};
+	
 	private static int progress_fraction = 20;
 
 	private static String output_folder = "./";
-
+	
 	public static void main(String[] args)
 			throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
 
 		parseArgs(args);
+		
+		String s = "[" + transfer_ratios[0];
+		for(int i = 1; i < transfer_ratios.length; i++) {
+			s += ", " + transfer_ratios[i];
+		}
+		s += "]";
+		System.out.println("exps: " + s);
 
-		System.out.println("n_exps: " + n_exps);
 		System.out.println("n_runs: " + n_runs);
 		System.out.println("n_threads: " + n_threads);
 		System.out.println("n_wallets: " + n_wallets);
 
 		System.out.println("duration: " + sec_duration + " s");
 
-		System.out.println("initial_transfer_ratio: " + initial_transfer_ratio);
-		System.out.println("transfer_ratio_step: " + transfer_ratio_step);
-
 		System.out.println("progres_fraction: " + progress_fraction);
 
 		System.out.println("output_folder: " + output_folder);
 
+		// If not wait, a 500 happens
 		try {
 			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		admin_wallet.ledger();
+		admin_wallet.ledger(); // To force logger to print the error before the evaluation starts and to check if the servers are accessible
 
 		System.out.println("Starting evaluation...");
 
@@ -88,13 +91,13 @@ public class Evaluation {
 	}
 
 	private static void parseArgs(String[] args) {
-		String usage = "Usage: Evaluation [options] \n" + "Options: \n" + "\t -help : dsiplay this menu \n"
+		String usage = "Usage: Evaluation [options] \n" + "Options: \n" 
+	            + "\t -help : display this menu \n"
 				+ "\t -t <n_threads> : maximum number of threads \n"
 				+ "\t -d <sec_duration> : duration of each run, in seconds \n"
 				+ "\t -w <n_wallets> : number of wallets of each thread \n"
-				+ "\t -e <n_exps> : number of experiments (different transacions ratios) \n"
+				+ "\t -e [transfer_ratio_1,..., transfer_ratio_n] : array of experiments (different transacion ratios) \n"
 				+ "\t -r <n_runs> : number of runs of each experiment to average the results \n"
-				+ "\t -i <initial_transfer_ratio> : initial transfers-balances ratio \n"
 				+ "\t -p <progress_fraction> : interval of progress to display the curretn progress\n"
 				+ "\t -o <output_folder> : output folder for the results' files \n" + "\n";
 
@@ -112,13 +115,14 @@ public class Evaluation {
 					n_wallets = Integer.parseInt(args[i + 1]);
 					break;
 				case "-e":
-					n_exps = Integer.parseInt(args[i + 1]);
+					String[] aux = args[i+1].substring(1, args[i+1].length()-1).split(",");
+					transfer_ratios = new double[aux.length];
+					for(int j = 0; j < aux.length; j++) {
+						transfer_ratios[j] = Double.parseDouble(aux[j].trim());
+					}
 					break;
 				case "-r":
 					n_runs = Integer.parseInt(args[i + 1]);
-					break;
-				case "-i":
-					initial_transfer_ratio = Double.parseDouble(args[i + 1]);
 					break;
 				case "-p":
 					progress_fraction = Integer.parseInt(args[i + 1]);
@@ -139,17 +143,17 @@ public class Evaluation {
 
 	private static void evaluate() {
 
-		Map<String, String[]> throughput = new HashMap<>(n_exps * 4);
-		Map<String, String[]> latency = new HashMap<>(n_exps * 4);
+		int n_exps = transfer_ratios.length;
+		Map<String, String[]> throughput_results = new HashMap<>(n_exps);
+		Map<String, String[]> latency_results = new HashMap<>(n_exps);
 
 		for (int exp = 1; exp <= n_exps; exp++) {
-			double current_transfer_ratio = initial_transfer_ratio + (exp - 1) * transfer_ratio_step;
+			double current_transfer_ratio = transfer_ratios[exp-1];
 
 			String[] current_exp_throughput = new String[n_threads];
 			String[] current_exp_latency = new String[n_threads];
 
-			System.out.println(
-					"\n\t Exp " + exp + "/" + n_exps + "\n\t current_transfer_ratio: " + current_transfer_ratio);
+			System.out.println("\n\t Exp " + exp + "/" + n_exps + "\n\t current_transfer_ratio: " + current_transfer_ratio + "\n\n");
 
 			for (int t = 1; t <= n_threads; t++) {
 				Map<String, String> exp_results = new HashMap<>(n_runs * 4);
@@ -177,52 +181,37 @@ public class Evaluation {
 
 				processRunResults(exp, n_runs, run_results, exp_results);
 
-				// double total_transfers = 0.0;
-				double total_avg_transfers = 0.0;
-				double avg_transfers_second = 0.0;
-				double avg_transfer_time = 0.0;
+				double total_transfers = 0.0;
+				double total_transfer_time = 0.0;
+				double total_balances = 0.0;
+				double total_balance_time = 0.0;
 
-				// double total_balances = 0.0;
-				double total_avg_balances = 0.0;
-				double avg_balances_second = 0.0;
-				double avg_balance_time = 0.0;
+				total_transfers = Double.parseDouble(exp_results.get("{" + exp + "} Total Transfers"));
+				total_transfer_time = Double.parseDouble(exp_results.get("{" + exp + "} Total Transfer Time"));
 
-				// total_transfers = Double.parseDouble(exp_results.get("{" + exp + "} Total
-				// Transfers"));
-				total_avg_transfers = Double.parseDouble(exp_results.get("{" + exp + "} Total Average Transfers"));
-				avg_transfers_second = Double
-						.parseDouble(exp_results.get("{" + exp + "} Average Transfers per Second"));
-				avg_transfer_time = Double.parseDouble(exp_results.get("{" + exp + "} Average Transfer Time"));
+				total_balances = Double.parseDouble(exp_results.get("{" + exp + "} Total Balances"));
+				total_balance_time = Double.parseDouble(exp_results.get("{" + exp + "} Total Balance Time"));
 
-				// total_balances = Double.parseDouble(exp_results.get("{" + exp + "} Total
-				// Balances"));
-				total_avg_balances = Double.parseDouble(exp_results.get("{" + exp + "} Total Average Balances"));
-				avg_balances_second = Double.parseDouble(exp_results.get("{" + exp + "} Average Balances per Second"));
-				avg_balance_time = Double.parseDouble(exp_results.get("{" + exp + "} Average Balance Time"));
-
-				avg_transfer_time = (Double.isNaN(avg_transfer_time)) ? 0.0 : avg_transfer_time;
-				avg_balance_time = (Double.isNaN(avg_balance_time)) ? 0.0 : avg_balance_time;
-
-				// avg_ops_sec = %transfers*avg_transfer_sec + %balances*avg_balances_sec
-				double transfer_ratio = total_avg_transfers / (total_avg_transfers + total_avg_balances);
-				// current_exp_throughput[t-1] = "" + (ratio_transfer*avg_transfers_second +
-				// (1.0 - ratio_transfer)*avg_balances_second);
-
-				current_exp_throughput[t - 1] = "" + (avg_transfers_second + avg_balances_second);
-				current_exp_latency[t - 1] = ""
-						+ (transfer_ratio * avg_transfer_time + (1.0 - transfer_ratio) * avg_balance_time);
+				double latency = (total_transfer_time + total_balance_time) / (total_transfers + total_balances);
+				double throughput = (total_transfers + total_balances) / (sec_duration);
+				
+				current_exp_latency[t - 1] = "" + latency;
+				current_exp_throughput[t - 1] = "" + throughput;
 			}
 
-			String label = "T-" + (int) Math.round(current_transfer_ratio * 100);
-			throughput.put(label, current_exp_throughput);
-			latency.put(label, current_exp_latency);
+			int r = (int) Math.round(current_transfer_ratio * 100);
+			String label = r + "T-" + (100 - r) + "B";
+			throughput_results.put(label, current_exp_throughput);
+			latency_results.put(label, current_exp_latency);
 		}
 
-		storeResults(throughput, output_folder + "throughput.csv");
-		storeResults(latency, output_folder + "latency.csv");
+		storeResults(throughput_results, output_folder + "throughput.csv");
+		storeResults(latency_results, output_folder + "latency.csv");
+		
+		storeResults2(throughput_results, latency_results, output_folder + "out.csv");
 
 		System.out.println("\nThroughput");
-		for (Entry<String, String[]> e : throughput.entrySet()) {
+		for (Entry<String, String[]> e : throughput_results.entrySet()) {
 			String[] v = e.getValue();
 			String values = "[" + v[0];
 			for (int i = 1; i < v.length; i++) {
@@ -234,7 +223,7 @@ public class Evaluation {
 		System.out.println("");
 
 		System.out.println("\nlatency");
-		for (Entry<String, String[]> e : latency.entrySet()) {
+		for (Entry<String, String[]> e : latency_results.entrySet()) {
 			String[] v = e.getValue();
 			String values = "[" + v[0];
 			for (int i = 1; i < v.length; i++) {
@@ -243,7 +232,6 @@ public class Evaluation {
 			values += "]";
 			System.out.println(e.getKey() + ": " + values);
 		}
-
 	}
 
 	private static Thread lauchThread(int thread_id, int run, int exp, int n_threads, double current_transfer_ratio,
@@ -303,120 +291,85 @@ public class Evaluation {
 				}
 
 				// Print progress
-				progress = 100
-						- (int) Math.round((((double) (finish - current_time)) / (sec_duration * s_to_ns)) * 100.0);
+				progress = 100 - (int) Math.round((((double) (finish - current_time)) / (sec_duration * s_to_ns)) * 100.0);
 				if (progress - old_progress >= progress_fraction) {
 					old_progress = progress;
 					System.out.println("{" + exp + "} [" + run + "] (" + thread_id + ") Progress: " + progress + " %");
 				}
 			}
-		} catch (InvalidAddressException | InvalidAmountException | InvalidSignatureException
-				| NotEnoughMoneyException e) {
+		} catch (InvalidAddressException | InvalidAmountException | InvalidSignatureException | NotEnoughMoneyException e) {
 			e.printStackTrace();
 		}
+		
+		String key = "";
+		double value = 0.0;
 
-		System.out.println(
-				"{" + exp + "} [" + run + "] (" + thread_id + ") " + "Total Transfers: " + transaction_counter + " tx");
-		results.put("{" + exp + "} [" + run + "] (" + thread_id + ") " + "Total Transfers: ", "" + transaction_counter);
-
-		double avg_transfers_second = ((double) transaction_counter) / sec_duration;
-		System.out.println("{" + exp + "} [" + run + "] (" + thread_id + ") " + "Average Transfers per Second: "
-				+ avg_transfers_second + " tx/s");
-		results.put("{" + exp + "} [" + run + "] (" + thread_id + ") " + "Average Transfers per Second: ",
-				"" + avg_transfers_second);
-
-		double avg_transfer_time = (transfer_total_time / ((double) s_to_ns)) / ((double) transaction_counter);
-		System.out.println("{" + exp + "} [" + run + "] (" + thread_id + ") " + "Average Transfer Time: "
-				+ avg_transfer_time + " s");
-		results.put("{" + exp + "} [" + run + "] (" + thread_id + ") " + "Average Transfer Time: ",
-				"" + avg_transfer_time);
-
-		System.out.println(
-				"{" + exp + "} [" + run + "] (" + thread_id + ") " + "Total Balances: " + balance_counter + " b");
-		results.put("{" + exp + "} [" + run + "] (" + thread_id + ") " + "Total Balances: ", "" + balance_counter);
-
-		double avg_balances_second = ((double) balance_counter) / sec_duration;
-		System.out.println("{" + exp + "} [" + run + "] (" + thread_id + ") " + "Average Balances per Second: "
-				+ avg_balances_second + " b/s");
-		results.put("{" + exp + "} [" + run + "] (" + thread_id + ") " + "Average Balances per Second: ",
-				"" + avg_balances_second);
-
-		double avg_balance_time = (balance_total_time / ((double) s_to_ns)) / ((double) balance_counter);
-		System.out.println("{" + exp + "} [" + run + "] (" + thread_id + ") " + "Average Balance Time: "
-				+ avg_balance_time + " s");
-		results.put("{" + exp + "} [" + run + "] (" + thread_id + ") " + "Average Balance Time: ",
-				"" + avg_balance_time);
+		key = "{" + exp + "} [" + run + "] (" + thread_id + ") " + "Total Transfers";
+		System.out.println(key + ": " + transaction_counter + " tx");
+		results.put(key, "" + transaction_counter);
+		
+		key = "{" + exp + "} [" + run + "] (" + thread_id + ") " + "Total Transfer Time";
+		value = transfer_total_time / ((double) s_to_ns);
+		System.out.println(key + ": " + value + " s");
+		results.put(key, "" + value);
+		
+		key = "{" + exp + "} [" + run + "] (" + thread_id + ") " + "Total Balances";
+		System.out.println(key + ": " + balance_counter + " bx");
+		results.put(key, "" + balance_counter);
+		
+		key = "{" + exp + "} [" + run + "] (" + thread_id + ") " + "Total Balance Time";
+		value = balance_total_time / ((double) s_to_ns);
+		System.out.println(key + ": " + value + " s");
+		results.put(key, "" + value);
 	}
 
-	private static void processThreadsResults(int run, int exp, int n_threads,
-			ConcurrentMap<String, String> thread_results, Map<String, String> run_results) {
+	private static void processThreadsResults(int run, int exp, int n_threads, ConcurrentMap<String, String> thread_results, Map<String, String> run_results) {
 		double total_transfers = 0.0;
-		double avg_transfers_second = 0.0;
-		double avg_transfer_time = 0.0;
+		double total_transfer_time = 0.0;
 
 		double total_balances = 0.0;
-		double avg_balances_second = 0.0;
-		double avg_balance_time = 0.0;
+		double total_balance_time = 0.0;
 
 		for (Entry<String, String> e : thread_results.entrySet()) {
 			String key = e.getKey();
 			String result = e.getValue();
 
 			if (key.contains("Total Transfers")) {
-				total_transfers += Long.parseLong(result);
-			} else if (key.contains("Average Transfers per Second")) {
-				avg_transfers_second += Double.parseDouble(result);
-			} else if (key.contains("Average Transfer Time")) {
-				avg_transfer_time += Double.parseDouble(result);
+				total_transfers += Double.parseDouble(result);
+			} else if (key.contains("Total Transfer Time")) {
+				total_transfer_time += Double.parseDouble(result);
 			} else if (key.contains("Total Balances")) {
-				total_balances += Long.parseLong(result);
-			} else if (key.contains("Average Balances per Second")) {
-				avg_balances_second += Double.parseDouble(result);
-			} else if (key.contains("Average Balance Time")) {
-				avg_balance_time += Double.parseDouble(result);
-			}
+				total_balances += Double.parseDouble(result);
+			} else if (key.contains("Total Balance Time")) {
+				total_balance_time += Double.parseDouble(result);
+			} 
 		}
+		
+		String key = "";
 
-		avg_transfers_second /= n_threads;
-		avg_transfer_time /= n_threads;
-
-		avg_balances_second /= n_threads;
-		avg_balance_time /= n_threads;
-
-		System.out.println("{" + exp + "} [" + run + "] Total Transfers: " + total_transfers + " tx");
-		System.out
-				.println("{" + exp + "} [" + run + "] Total Average Transfers: " + total_transfers / n_threads + " tx");
-		System.out
-				.println("{" + exp + "} [" + run + "] Average Transfers per Second: " + avg_transfers_second + " tx/s");
-		System.out.println("{" + exp + "} [" + run + "] Average Transfer Time: " + avg_transfer_time + " s");
-
-		run_results.put("{" + exp + "} [" + run + "] Total Transfers", "" + total_transfers);
-		run_results.put("{" + exp + "} [" + run + "] Total Average Transfers", "" + (total_transfers / n_threads));
-		run_results.put("{" + exp + "} [" + run + "] Average Transfers per Second", "" + avg_transfers_second);
-		run_results.put("{" + exp + "} [" + run + "] Average Transfer Time", "" + avg_transfer_time);
-
-		System.out.println("{" + exp + "} [" + run + "] Total Balances: " + total_balances + " b");
-		System.out.println("{" + exp + "} [" + run + "] Total Average Balances: " + total_balances / n_threads + " b");
-		System.out.println("{" + exp + "} [" + run + "] Average Balances per Second: " + avg_balances_second + " b/s");
-		System.out.println("{" + exp + "} [" + run + "] Average Balance Time: " + avg_balance_time + " s");
-
-		run_results.put("{" + exp + "} [" + run + "] Total Balances", "" + total_balances);
-		run_results.put("{" + exp + "} [" + run + "] Total Average Balances", "" + (total_balances / n_threads));
-		run_results.put("{" + exp + "} [" + run + "] Average Balances per Second", "" + avg_balances_second);
-		run_results.put("{" + exp + "} [" + run + "] Average Balance Time", "" + avg_balance_time);
+		key = "{" + exp + "} [" + run + "] Total Transfers";
+		System.out.println(key + ": " + total_transfers + " tx");
+		run_results.put(key, "" + total_transfers);
+		
+		key = "{" + exp + "} [" + run + "] Total Transfer Time";
+		System.out.println(key + ": " + total_transfer_time + " s");
+		run_results.put(key, "" + total_transfer_time);
+		
+		key = "{" + exp + "} [" + run + "] Total Balances";
+		System.out.println(key + ": " + total_balances + " bx");
+		run_results.put(key, "" + total_balances);
+		
+		key = "{" + exp + "} [" + run + "] Total Balance Time";
+		System.out.println(key + ": " + total_balance_time + " s");
+		run_results.put(key, "" + total_balance_time);
 	}
 
-	private static void processRunResults(int exp, int n_runs, Map<String, String> run_results,
-			Map<String, String> exp_results) {
+	private static void processRunResults(int exp, int n_runs, Map<String, String> run_results, Map<String, String> exp_results) {
 		double total_transfers = 0.0;
-		double total_avg_transfers = 0.0;
-		double avg_transfers_second = 0.0;
-		double avg_transfer_time = 0.0;
+		double total_transfer_time = 0.0;
 
 		double total_balances = 0.0;
-		double total_avg_balances = 0.0;
-		double avg_balances_second = 0.0;
-		double avg_balance_time = 0.0;
+		double total_balance_time = 0.0;
 
 		for (Entry<String, String> e : run_results.entrySet()) {
 			String key = e.getKey();
@@ -424,52 +377,37 @@ public class Evaluation {
 
 			if (key.contains("Total Transfers")) {
 				total_transfers += Double.parseDouble(result);
-			} else if (key.contains("Total Average Transfers")) {
-				total_avg_transfers += Double.parseDouble(result);
-			} else if (key.contains("Average Transfers per Second")) {
-				avg_transfers_second += Double.parseDouble(result);
-			} else if (key.contains("Average Transfer Time")) {
-				avg_transfer_time += Double.parseDouble(result);
+			} else if (key.contains("Total Transfer Time")) {
+				total_transfer_time += Double.parseDouble(result);
 			} else if (key.contains("Total Balances")) {
 				total_balances += Double.parseDouble(result);
-			} else if (key.contains("Total Average Balances")) {
-				total_avg_balances += Double.parseDouble(result);
-			} else if (key.contains("Average Balances per Second")) {
-				avg_balances_second += Double.parseDouble(result);
-			} else if (key.contains("Average Balance Time")) {
-				avg_balance_time += Double.parseDouble(result);
-			}
+			} else if (key.contains("Total Balance Time")) {
+				total_balance_time += Double.parseDouble(result);
+			} 
 		}
 
 		total_transfers /= n_runs;
-		total_avg_transfers /= n_runs;
-		avg_transfers_second /= n_runs;
-		avg_transfer_time /= n_runs;
-
+		total_transfer_time /= n_runs;
 		total_balances /= n_runs;
-		total_avg_balances /= n_runs;
-		avg_balances_second /= n_runs;
-		avg_balance_time /= n_runs;
+		total_balance_time /= n_runs;
+		
+		String key = "";
 
-		System.out.println("{" + exp + "} Total Transfers: " + total_transfers + " tx");
-		System.out.println("{" + exp + "} Total Average Transfers: " + total_avg_transfers + " tx");
-		System.out.println("{" + exp + "} Average Transfers per Second: " + avg_transfers_second + " tx/s");
-		System.out.println("{" + exp + "} Average Transfer Time: " + avg_transfer_time + " s");
-
-		exp_results.put("{" + exp + "} Total Transfers", "" + total_transfers);
-		exp_results.put("{" + exp + "} Total Average Transfers", "" + total_avg_transfers);
-		exp_results.put("{" + exp + "} Average Transfers per Second", "" + avg_transfers_second);
-		exp_results.put("{" + exp + "} Average Transfer Time", "" + avg_transfer_time);
-
-		System.out.println("{" + exp + "} Total Balances: " + total_balances + " b");
-		System.out.println("{" + exp + "} Total Average Balances: " + total_avg_balances + " b");
-		System.out.println("{" + exp + "} Average Balances per Second: " + avg_balances_second + " b/s");
-		System.out.println("{" + exp + "} Average Balance Time: " + avg_balance_time + " s");
-
-		exp_results.put("{" + exp + "} Total Balances", "" + total_balances);
-		exp_results.put("{" + exp + "} Total Average Balances", "" + total_avg_balances);
-		exp_results.put("{" + exp + "} Average Balances per Second", "" + avg_balances_second);
-		exp_results.put("{" + exp + "} Average Balance Time", "" + avg_balance_time);
+		key = "{" + exp + "} Total Transfers";
+		System.out.println(key + ": " + total_transfers + " tx");
+		exp_results.put(key, "" + total_transfers);
+		
+		key = "{" + exp + "} Total Transfer Time";
+		System.out.println(key + ": " + total_transfer_time + " s");
+		exp_results.put(key, "" + total_transfer_time);
+		
+		key = "{" + exp + "} Total Balances";
+		System.out.println(key + ": " + total_balances + " bx");
+		exp_results.put(key, "" + total_balances);
+		
+		key = "{" + exp + "} Total Balance Time";
+		System.out.println(key + ": " + total_balance_time + " s");
+		exp_results.put(key, "" + total_balance_time);
 	}
 
 	private static void storeResults(Map<String, String[]> results, String path) {
@@ -505,6 +443,59 @@ public class Evaluation {
 			}
 		}
 
+		for (int i = 0; i < lines.length; i++) {
+			pw.println(lines[i]);
+			System.out.println(lines[i]);
+		}
+
+		pw.close();
+	}
+	
+	private static void storeResults2(Map<String, String[]> throughput, Map<String, String[]> latency, String path) {
+
+		File yourFile = new File(path);
+
+		FileOutputStream oFile = null;
+
+		PrintWriter pw = null;
+		try {
+			yourFile.createNewFile(); // if file already exists will do nothing
+			oFile = new FileOutputStream(yourFile, false);
+			pw = new PrintWriter(new FileWriter(oFile.getFD()));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		Iterator<Entry<String, String[]>> it1 = throughput.entrySet().iterator();
+		Iterator<Entry<String, String[]>> it2 = latency.entrySet().iterator();
+		
+		String[] lines = new String[n_threads];
+		
+		for (int i = 0; i < lines.length; i++) {
+			lines[i] = "";
+		}
+		
+		String tags = "";
+		
+		while( it1.hasNext() && it2.hasNext() ) {
+			Entry<String, String[]> e1 = it1.next();
+			Entry<String, String[]> e2 = it2.next();
+			
+			tags += e1.getKey() + ";;";
+
+			String[] values = e1.getValue();
+			for(int i = 0; i < values.length; i++) {
+				lines[i] += values[i] + ";";
+			}
+			
+			values = e2.getValue();
+			for(int i = 0; i < values.length; i++) {
+				lines[i] += values[i] + ";";
+			}
+		}
+
+		pw.println(tags);
+		System.out.println(tags);
 		for (int i = 0; i < lines.length; i++) {
 			pw.println(lines[i]);
 			System.out.println(lines[i]);

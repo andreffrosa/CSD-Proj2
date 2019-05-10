@@ -1,3 +1,4 @@
+package replicaManager;
 import javax.net.ssl.SSLSession;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;

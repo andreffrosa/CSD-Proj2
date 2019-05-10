@@ -1,3 +1,4 @@
+import replicaManager.ReplicaManagerRESTClient;
 
 public class Test {
 	// Temp

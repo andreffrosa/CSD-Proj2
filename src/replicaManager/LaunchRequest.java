@@ -1,3 +1,4 @@
+package replicaManager;
 import java.io.Serializable;
 
 import com.google.gson.GsonBuilder;

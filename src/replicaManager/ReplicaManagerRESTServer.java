@@ -15,10 +15,8 @@ import rest.tls.ClientCertificateVerifier;
 @SuppressWarnings("restriction")
 public class ReplicaManagerRESTServer {
 
-	// TODO: atualizar estas constantes e criar uma keystore para isto
-	
 	// Constants
-	private static final String PATH = "./tls/Server/";
+	private static final String PATH = "./tls/ReplicaManagerServer/";
 	private static final String SERVER_KEYSTORE = PATH + "server-ks.jks";
 	private static final String SERVER_KEYSTORE_PWD = "CSD1819";
 	private static final String SERVER_TRUSTSTORE = PATH + "server-ts.jks";

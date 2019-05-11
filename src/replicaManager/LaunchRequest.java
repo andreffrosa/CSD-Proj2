@@ -10,6 +10,7 @@ public class LaunchRequest implements Serializable  {
 	 */
 	private static final long serialVersionUID = 1L;
 	
+	public String password;
 	public String fileName;
 	public String hash;
 	public String className;
@@ -18,7 +19,8 @@ public class LaunchRequest implements Serializable  {
 	public LaunchRequest() {
 	}
 	
-	public LaunchRequest(String fileName, byte[] hash, String className, String[] args) {
+	public LaunchRequest(String password, String fileName, byte[] hash, String className, String[] args) {
+		this.password = password;
 		this.fileName = fileName;
 		this.hash = java.util.Base64.getEncoder().encodeToString(hash);
 		this.className = className;

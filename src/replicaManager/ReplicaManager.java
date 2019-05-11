@@ -9,6 +9,8 @@ import utils.Cryptography;
 import utils.IO;
 
 public class ReplicaManager implements ReplicaManagerService {
+	
+	private static final String PASSWORD_HASH = "Ni54DZjSFXGONgao/GZH4fXd2KjbYJNQtBbKwpX3R54=";
 
 	// 1 réplica apenas ou isto lança todas?
 	private Process process;
@@ -16,16 +18,18 @@ public class ReplicaManager implements ReplicaManagerService {
 	// TODO: meter para retornar boolean?
 	public void launch(LaunchRequest request) {
 
+		String password = request.password;
 		String fileName = request.fileName;
 		String hash = request.hash;
 		String className = request.className;
 		String[] args = request.getArgs();
 		
+		validatePassword(password);
+		
 		// TODO: verificar hash
 		String new_hash = Cryptography.computeHash(IO.loadFile(fileName));
 		if( !hash.equals(new_hash) ) {
-			System.err.println("The hashes are different!"); // TODO: O que fazer?
-			return;
+			throw new HashMisMatchWebException("Hash does not match!");
 		}
 
 		String javaHome = System.getProperty("java.home");
@@ -54,8 +58,17 @@ public class ReplicaManager implements ReplicaManagerService {
 		}
 	}
 
-	public void stop() {
-		process.destroy();
+	public void stop(String password) {
+		validatePassword(password);
+		
+		if(process != null)
+			process.destroy();
+	}
+	
+	private static void validatePassword(String password) {
+		String new_hash = Cryptography.computeHash(password);
+		if(!new_hash.equals(PASSWORD_HASH))
+			throw new InvalidPasswordWebException(password + " is not a valid password!");
 	}
 
 }

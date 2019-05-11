@@ -19,9 +19,12 @@ public class ReplicaContainer {
 			System.out.println();
 			URL[] urls = new URL[] {new File(fileName).toURI().toURL()};
 
+			@SuppressWarnings("resource")
 			URLClassLoader classLoader = new URLClassLoader(urls);
 
+			@SuppressWarnings("rawtypes")
 			Class c = classLoader.loadClass(className);
+			@SuppressWarnings("unchecked")
 			Method m = c.getDeclaredMethod("main", String[].class);
 
 			m.invoke(null, (Object)r_args);

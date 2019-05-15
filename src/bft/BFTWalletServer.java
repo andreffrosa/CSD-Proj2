@@ -9,6 +9,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,11 +17,22 @@ import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.xml.transform.Templates;
+
+import com.google.gson.GsonBuilder;
+
 import bft.reply.BFTWalletResultType;
 import bftsmart.tom.MessageContext;
 import bftsmart.tom.ServiceReplica;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
-import rest.OperationsHashUtil;
+import rest.entities.AtomicTransferRequest;
+import rest.entities.BalanceRequest;
+import rest.entities.GetBetweenOrderPreservingRequest;
+import rest.entities.GetOrderPreservingRequest;
+import rest.entities.LedgerRequest;
+import rest.entities.PutOrderPreservingRequest;
+import rest.entities.TransferRequest;
+import utils.Serializor;
 import wallet.ByzantineWallet;
 import wallet.SimpleWallet;
 import wallet.Transaction;
@@ -121,7 +133,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 				double amount = objIn.readDouble();
 				String signature = objIn.readUTF();
 
-				op_hash = OperationsHashUtil.transferHash(from, to, amount, signature, nonce);
+				op_hash = TransferRequest.computeHash(signature, nonce);
 
 				val = chechResults(op_hash);
 				cached = (val != null);
@@ -162,7 +174,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 			case ATOMIC_TRANSFER_MONEY:
 				@SuppressWarnings("unchecked") List<Transaction> transactions = (List<Transaction>) objIn.readObject();
 
-				op_hash = OperationsHashUtil.atomicTransferHash(transactions, nonce);
+				op_hash = AtomicTransferRequest.computeHash(transactions, nonce);
 
 				val = chechResults(op_hash);
 				cached = (val != null);
@@ -198,7 +210,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 			case CURRENT_BALANCE:
 				String who = objIn.readUTF();
 
-				op_hash = OperationsHashUtil.balanceHash(who, nonce);
+				op_hash = BalanceRequest.computeHash(who, nonce);
 				val = chechResults(op_hash);
 				cached = (val != null);
 				if(!cached) {
@@ -215,7 +227,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 
 				break;
 			case GET_LEDGER:
-				op_hash = OperationsHashUtil.ledgerHash(nonce);
+				op_hash = LedgerRequest.computeHash(nonce);
 				val = chechResults(op_hash);
 				cached = (val != null);
 				if(!cached) {
@@ -229,6 +241,63 @@ public class BFTWalletServer extends DefaultRecoverable {
 					System.out.println("(" + iterations + ") ledger() : " + ledger.size());
 				}
 
+				break;
+			case PUT_OPI:
+				String id = objIn.readUTF();
+				Long value = objIn.readLong();
+
+				op_hash = PutOrderPreservingRequest.computeHash(id, value, nonce);
+				
+				val = chechResults(op_hash);
+				cached = (val != null);
+				if(!cached) {
+
+					Boolean result = wallet.putOrderPreservingInt(id, value);
+
+					objOut.writeObject(op_hash);
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeObject(result);
+					hasReply = true;
+
+					System.out.println("(" + iterations + ") putOPI(" + id + ", " + value + ") : " + result);
+				}
+				break;
+			case GET_OPI:
+				id = objIn.readUTF();
+
+				op_hash = GetOrderPreservingRequest.computeHash(id, nonce);
+				val = chechResults(op_hash);
+				cached = (val != null);
+				if(!cached) {
+
+					value = wallet.getOrderPreservingInt(id);
+
+					objOut.writeObject(op_hash);
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeObject(value);
+					hasReply = true;
+
+					System.out.println("(" + iterations + ") getOPI(" + id + ") : " + value);
+				}
+				break;
+			case GET_BETWEEN_OPI:
+				String k1 = objIn.readUTF();
+				String k2 = objIn.readUTF();
+
+				op_hash = GetBetweenOrderPreservingRequest.computeHash(k1, k2, nonce);
+				val = chechResults(op_hash);
+				cached = (val != null);
+				if(!cached) {
+
+					List<Entry<String, Long>> values = wallet.getBetween(k1, k2);
+
+					objOut.writeObject(op_hash);
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeObject(Serializor.serializeList(values));
+					hasReply = true;
+
+					System.out.println("(" + iterations + ") getBetweenOPI(" + k1 + ", " + k2 + ") : " + values.size());
+				}
 				break;
 			}
 			
@@ -276,7 +345,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 			case CURRENT_BALANCE:
 				String who = objIn.readUTF();
 
-				op_hash = OperationsHashUtil.balanceHash(who, nonce);
+				op_hash = BalanceRequest.computeHash(who, nonce);
 				val = chechResults(op_hash);
 				cached = (val != null);
 				if(!cached) {
@@ -293,7 +362,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 
 				break;
 			case GET_LEDGER:
-				op_hash = OperationsHashUtil.ledgerHash(nonce);
+				op_hash = LedgerRequest.computeHash(nonce);
 				val = chechResults(op_hash);
 				cached = (val != null);
 				if(!cached) {
@@ -307,6 +376,43 @@ public class BFTWalletServer extends DefaultRecoverable {
 					System.out.println("(" + iterations + ") ledger() : " + ledger.size());
 				}
 
+				break;
+			case GET_OPI:
+				String id = objIn.readUTF();
+
+				op_hash = GetOrderPreservingRequest.computeHash(id, nonce);
+				val = chechResults(op_hash);
+				cached = (val != null);
+				if(!cached) {
+
+					Long value = wallet.getOrderPreservingInt(id);
+
+					objOut.writeObject(op_hash);
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeObject(value);
+					hasReply = true;
+
+					System.out.println("(" + iterations + ") getOPI(" + id + ") : " + value);
+				}
+				break;
+			case GET_BETWEEN_OPI:
+				String k1 = objIn.readUTF();
+				String k2 = objIn.readUTF();
+
+				op_hash = GetBetweenOrderPreservingRequest.computeHash(k1, k2, nonce);
+				val = chechResults(op_hash);
+				cached = (val != null);
+				if(!cached) {
+
+					List<Entry<String, Long>> values = wallet.getBetween(k1, k2);
+
+					objOut.writeObject(op_hash);
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeObject(Serializor.serializeList(values));
+					hasReply = true;
+
+					System.out.println("(" + iterations + ") getBetweenOPI(" + k1 + ", " + k2 + ") : " + values.size());
+				}
 				break;
 			default:
 				logger.log(Level.WARNING, "in appExecuteUnordered only read operations are supported");

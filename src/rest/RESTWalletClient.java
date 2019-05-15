@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,12 +19,19 @@ import javax.net.ssl.SSLSession;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import bft.reply.BFTReply;
 import bft.reply.InvalidRepliesException;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
+import rest.entities.GetBetweenOrderPreservingRequest;
+import rest.entities.GetOrderPreservingRequest;
 import rest.entities.LedgerRequest;
+import rest.entities.PutOrderPreservingRequest;
 import rest.entities.TransferRequest;
+import utils.Serializor;
 import wallet.Transaction;
 import wallet.Wallet;
 import wallet.exceptions.InvalidAddressException;
@@ -85,6 +93,8 @@ public class RESTWalletClient implements Wallet {
 			try {
 				return requestHandler.execute(replicas.get(index));
 			} catch (ProcessingException | InvalidRepliesException e) {
+				e.printStackTrace();
+				
 				if (e.getMessage().contains("java.net.ConnectException")
 						|| e.getMessage().contains("java.net.SocketTimeoutException")
 						|| e instanceof InvalidRepliesException) {
@@ -121,21 +131,35 @@ public class RESTWalletClient implements Wallet {
 
 		TransferRequest request = new TransferRequest(transaction);
 
-		String op_hash = OperationsHashUtil.transferHash(transaction.getFrom(), transaction.getTo(),
-				transaction.getAmount(), transaction.getSignature(), request.getNonce());
-
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + "/transfer/").request()
-					.post(Entity.entity(request, MediaType.APPLICATION_JSON));
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.TRANSFER_PATH).request()
+					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
 
 			if (response.getStatus() == 200) {
 				byte[] result = (byte[]) response.readEntity(byte[].class);
-				return BFTReply.processReply(result, op_hash);
+				return BFTReply.processReply(result, request.getHash());
 			} else
 				throw new RuntimeException("WalletClient Transfer: " + response.getStatus());
 		});
 
-		return (Boolean) reply.getResult();
+		if (reply.isException()) {
+			String msg = (String) reply.getContent();
+
+			switch (reply.getResultType()) {
+			case INVALID_ADDRESS:
+				throw new InvalidAddressException(msg);
+			case INVALID_AMOUNT:
+				throw new InvalidAmountException(msg);
+			case INVALID_SIGNATURE:
+				throw new InvalidSignatureException(msg);
+			case NOT_ENOUGH_MONEY:
+				throw new NotEnoughMoneyException(msg);
+			default:
+				break;
+			}
+		} 
+		
+		return (Boolean) reply.getContent();
 	}
 
 	@Override
@@ -144,20 +168,35 @@ public class RESTWalletClient implements Wallet {
 
 		AtomicTransferRequest request = new AtomicTransferRequest(transactions);
 
-		String op_hash = OperationsHashUtil.atomicTransferHash(transactions, request.getNonce());
-
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + "/atomicTransfer/").request()
-					.post(Entity.entity(request, MediaType.APPLICATION_JSON));
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.ATOMIC_TRANSFER_PATH).request()
+					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
 
 			if (response.getStatus() == 200) {
 				byte[] result = (byte[]) response.readEntity(byte[].class);
-				return BFTReply.processReply(result, op_hash);
+				return BFTReply.processReply(result, request.getHash());
 			} else
 				throw new RuntimeException("WalletClient atomicTransfer: " + response.getStatus());
 		});
 
-		return (Boolean) reply.getResult();
+		if (reply.isException()) {
+			String msg = (String) reply.getContent();
+
+			switch (reply.getResultType()) {
+			case INVALID_ADDRESS:
+				throw new InvalidAddressException(msg);
+			case INVALID_AMOUNT:
+				throw new InvalidAmountException(msg);
+			case INVALID_SIGNATURE:
+				throw new InvalidSignatureException(msg);
+			case NOT_ENOUGH_MONEY:
+				throw new NotEnoughMoneyException(msg);
+			default:
+				break;
+			}
+		}
+			
+		return (Boolean) reply.getContent();
 	}
 
 	@Override
@@ -165,19 +204,17 @@ public class RESTWalletClient implements Wallet {
 
 		BalanceRequest request = new BalanceRequest(who);
 
-		String op_hash = OperationsHashUtil.balanceHash(who, request.getNonce());
-
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + "/balance/").request()
-					.post(Entity.entity(request, MediaType.APPLICATION_JSON));
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.BALANCE_PATH).request()
+					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
 
 			if (response.getStatus() == 200) {
 				byte[] result = (byte[]) response.readEntity(byte[].class);
-				return BFTReply.processReply(result, op_hash);
+				return BFTReply.processReply(result, request.getHash());
 			} else
 				throw new RuntimeException("WalletClient currentAmount: " + response.getStatus());
 		});
-
+		
 		return (Double) reply.getContent();
 	}
 
@@ -187,20 +224,79 @@ public class RESTWalletClient implements Wallet {
 
 		LedgerRequest request = new LedgerRequest();
 
-		String op_hash = OperationsHashUtil.ledgerHash(request.getNonce());
-
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + "/ledger/").request()
-					.post(Entity.entity(request, MediaType.APPLICATION_JSON));
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.LEDGER_PATH).request()
+					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
 
+			System.out.println(response.toString());
+			
 			if (response.getStatus() == 200) {
 				byte[] result = (byte[]) response.readEntity(byte[].class);
-				return BFTReply.processReply(result, op_hash);
+				return BFTReply.processReply(result, request.getHash());
 			} else
 				throw new RuntimeException("WalletClient ledger: " + response.getStatus());
 		});
 
 		return (Map<String, Double>) reply.getContent();
+	}
+
+	@Override
+	public boolean putOrderPreservingInt(String id, long n) {
+
+		PutOrderPreservingRequest request = new PutOrderPreservingRequest(id, n);
+	
+		BFTReply reply = processRequest((location) -> {
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.PUT_OPI_PATH).request()
+					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
+
+			System.out.println(new GsonBuilder().create().toJson(request));
+			
+			if (response.getStatus() == 200) {
+				byte[] result = (byte[]) response.readEntity(byte[].class);
+				return BFTReply.processReply(result, request.getHash());
+			} else
+				throw new RuntimeException("WalletClient putOrderPreservingInt: " + response.getStatus());
+		});
+		
+		return (Boolean) reply.getContent();
+	}
+
+	@Override
+	public long getOrderPreservingInt(String id) {
+		
+		GetOrderPreservingRequest request = new GetOrderPreservingRequest(id);
+
+		BFTReply reply = processRequest((location) -> {
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.GET_OPI_PATH).request()
+					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
+
+			if (response.getStatus() == 200) {
+				byte[] result = (byte[]) response.readEntity(byte[].class);
+				return BFTReply.processReply(result, request.getHash());
+			} else
+				throw new RuntimeException("WalletClient putOrderPreservingInt: " + response.getStatus());
+		});
+		
+		return (Long) reply.getContent();
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Entry<String, Long>> getBetween(String k1, String k2) {
+		GetBetweenOrderPreservingRequest request = new GetBetweenOrderPreservingRequest(k1, k2);
+
+		BFTReply reply = processRequest((location) -> {
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.GET_BETWEEN_OPI_PATH).request()
+					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
+
+			if (response.getStatus() == 200) {
+				byte[] result = (byte[]) response.readEntity(byte[].class);
+				return BFTReply.processReply(result, request.getHash());
+			} else
+				throw new RuntimeException("WalletClient getBetween: " + response.getStatus());
+		});
+		
+		return Serializor.deserialize((String) reply.getContent());
 	}
 
 }

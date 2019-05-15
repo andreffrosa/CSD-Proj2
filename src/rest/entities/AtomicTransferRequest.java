@@ -6,6 +6,7 @@ import java.util.List;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import utils.Cryptography;
 import wallet.Transaction;
 
 public class AtomicTransferRequest extends AbstractRestRequest {
@@ -39,10 +40,19 @@ public class AtomicTransferRequest extends AbstractRestRequest {
 		return l;
 	}
 
+	public static String computeHash(List<Transaction> transactions, long nonce) {
+		String txs_hash = "";
+		for (Transaction tx : transactions) {
+			txs_hash += tx.getDigestString();
+		}
+
+		return Cryptography.computeHash(txs_hash + nonce);
+	}
+	
 	@Override
-	public String serialize() {
-		Gson gson = new GsonBuilder().create();
-		return gson.toJson(transactions);
+	public String getHash() {
+		List<Transaction> transactions =  deserialize();
+		return computeHash(transactions, this.getNonce());
 	}
 
 }

@@ -1,8 +1,10 @@
 package wallet;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import utils.Cryptography;
 import wallet.exceptions.InvalidAddressException;
@@ -12,13 +14,19 @@ import wallet.exceptions.NotEnoughMoneyException;
 
 public class SimpleWallet implements Wallet {
 
+	private static final int DEFAULT_SIZE = 100;
+	
 	private static final String ADMINS_DIRECTORY = "./admins/";
 
 	private Map<String, Double> accounts;
+	private Map<String, Long> orderPreservingVariables;
 	private List<String> admins;
 
 	public SimpleWallet() {
-		accounts = new HashMap<>();
+		accounts = new HashMap<>( DEFAULT_SIZE );
+		
+		orderPreservingVariables = new HashMap<String, Long>( DEFAULT_SIZE );
+		
 		admins = Cryptography.loadKeys(ADMINS_DIRECTORY, "publicKey");
 	}
 
@@ -111,6 +119,45 @@ public class SimpleWallet implements Wallet {
 			throw e;
 		}
 
+		return result;
+	}
+
+	@Override
+	public boolean putOrderPreservingInt(String id, long n) {
+		System.out.println("put " + id + " " + n);
+		return orderPreservingVariables.putIfAbsent(id, n) == null;
+	}
+
+	@Override
+	public long getOrderPreservingInt(String id) {
+		
+		System.out.println("get " + id);
+		
+		// TODO: o que fazer quando não existe? Excepção?
+		Long n = orderPreservingVariables.get(id);
+		if( n != null ) {
+			System.out.println(n);
+			return n;
+		} else {
+			System.out.println("not found");
+			return 0L;
+		}
+	}
+
+	@Override
+	public List<Entry<String, Long>> getBetween(String k1, String k2) {
+		List<Entry<String, Long>> result = new LinkedList<>();
+
+		// TODO: O que fazer quando um dos extremos não existe?
+		Long v1 = orderPreservingVariables.get(k1);
+		Long v2 = orderPreservingVariables.get(k2);
+		
+		for(Entry<String, Long> e : orderPreservingVariables.entrySet()) {
+			if( v1 <= e.getValue() && e.getValue() <= v2) {
+				result.add(e);
+			}
+		}
+		
 		return result;
 	}
 

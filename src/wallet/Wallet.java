@@ -2,6 +2,7 @@ package wallet;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import wallet.exceptions.InvalidAddressException;
 import wallet.exceptions.InvalidAmountException;
@@ -30,4 +31,19 @@ public interface Wallet {
 	 * */
 	Map<String, Double> ledger();
 
+	/**
+	 * 
+	 * */
+	boolean putOrderPreservingInt(String id, long n); // precisa de assinatura?
+	
+	/**
+	 * 
+	 * */
+	long getOrderPreservingInt(String id);
+	
+	/**
+	 * 
+	 * */
+	List<Entry<String, Long>> getBetween(String k1, String k2);
+	
 }

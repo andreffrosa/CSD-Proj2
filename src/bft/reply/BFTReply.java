@@ -25,10 +25,6 @@ import bftsmart.reconfiguration.util.ECDSAKeyLoader;
 import bftsmart.reconfiguration.util.RSAKeyLoader;
 import bftsmart.reconfiguration.util.SunECKeyLoader;
 import bftsmart.tom.util.KeyLoader;
-import wallet.exceptions.InvalidAddressException;
-import wallet.exceptions.InvalidAmountException;
-import wallet.exceptions.InvalidSignatureException;
-import wallet.exceptions.NotEnoughMoneyException;
 
 /**
  * Encapsulates and converts a reply from a replica into a Class.
@@ -131,6 +127,9 @@ public class BFTReply implements java.io.Serializable {
 				BFTWalletResultType result_status = (BFTWalletResultType) objIn.readObject();
 				Object value = objIn.readObject();
 
+				System.out.println("recv: " + op_hash_rcv);
+				System.out.println("expt: " + op_hash);
+				
 				if (op_hash_rcv.equals(op_hash)) {
 					return new BFTReply(value, result_status);
 				} else
@@ -179,7 +178,7 @@ public class BFTReply implements java.io.Serializable {
 		}
 	}
 
-	public Object getResult()
+	/*public Object getResult()
 			throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
 
 		if (this.isException()) {
@@ -200,7 +199,7 @@ public class BFTReply implements java.io.Serializable {
 		}
 
 		return this.getContent();
-	}
+	}*/
 
 	public boolean isException() {
 		return !result_type.equals(BFTWalletResultType.OK);

@@ -37,6 +37,7 @@ public class ReplicaManager implements ReplicaManagerService {
                 File.separator + "bin" +
                 File.separator + "java";
         String classpath = System.getProperty("java.class.path");
+        
 
         List<String> container_args = new ArrayList<>();
         container_args.add(javaBin);
@@ -48,7 +49,7 @@ public class ReplicaManager implements ReplicaManagerService {
         container_args.addAll(Arrays.asList(args));
         
         ProcessBuilder builder = new ProcessBuilder(container_args);
-        
+        builder.directory(new File(System.getProperty("user.dir")));
 		builder.inheritIO();
 		try {
 			process = builder.start();

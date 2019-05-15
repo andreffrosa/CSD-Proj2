@@ -3,6 +3,7 @@ package rest.entities;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import utils.Cryptography;
 import wallet.Transaction;
 
 public class TransferRequest extends AbstractRestRequest {
@@ -26,13 +27,18 @@ public class TransferRequest extends AbstractRestRequest {
 		this.transaction = gson.toJson(transaction);
 	}
 
-	@Override
-	public String serialize() {
-		return transaction;
-	}
-
 	public Transaction deserialize() {
 		Gson gson = new GsonBuilder().create();
 		return gson.fromJson(transaction, Transaction.class);
 	}
+	
+	public static String computeHash(String signature, long nonce) {
+		return Cryptography.computeHash(signature + nonce);
+	}
+
+	@Override
+	public String getHash() {
+		return computeHash(deserialize().getSignature(), getNonce());
+	}
+	
 }

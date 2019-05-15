@@ -6,7 +6,6 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.util.List;
 
-import bft.BFTWalletRequestType;
 import bft.reply.ReplyExtractor;
 import bftsmart.tom.ServiceProxy;
 import wallet.Transaction;
@@ -98,7 +97,66 @@ public class BFTWalletClient {
 			
 			return reply;
 		} catch (IOException e) {
-			throw new RuntimeException("Exception checking money: " + e.getMessage());
+			throw new RuntimeException("Exception ledger: " + e.getMessage());
+		}
+	}
+	
+	byte[] putOrderPreservingInt(String id, long value, long nonce) {
+		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
+
+			objOut.writeObject(BFTWalletRequestType.PUT_OPI);
+			objOut.writeLong(nonce);
+			objOut.writeUTF(id);
+			objOut.writeLong(value);
+
+			objOut.flush();
+			byteOut.flush();
+
+			byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
+			
+			return reply;
+		} catch (IOException e) {
+			throw new RuntimeException("Exception putting OPInt: " + e.getMessage());
+		}
+	}
+	
+	byte[] getOrderPreservingInt(String id, long nonce) {
+		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
+
+			objOut.writeObject(BFTWalletRequestType.GET_OPI);
+			objOut.writeLong(nonce);
+			objOut.writeUTF(id);
+
+			objOut.flush();
+			byteOut.flush();
+
+			byte[] reply = serviceProxy.invokeUnordered(byteOut.toByteArray());
+			
+			return reply;
+		} catch (IOException e) {
+			throw new RuntimeException("Exception getting OPInt: " + e.getMessage());
+		}
+	}
+	
+	byte[] getBetween(String k1, String k2, long nonce) {
+		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
+
+			objOut.writeObject(BFTWalletRequestType.GET_BETWEEN_OPI);
+			objOut.writeLong(nonce);
+			objOut.writeUTF(k1);
+			objOut.writeUTF(k2);
+
+			objOut.flush();
+			byteOut.flush();
+
+			byte[] reply = serviceProxy.invokeUnordered(byteOut.toByteArray());
+			
+			return reply;
+		} catch (IOException e) {
+			throw new RuntimeException("Exception getting between OPInt: " + e.getMessage());
 		}
 	}
 

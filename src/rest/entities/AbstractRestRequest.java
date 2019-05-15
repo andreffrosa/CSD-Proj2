@@ -21,7 +21,7 @@ public abstract class AbstractRestRequest implements Serializable {
 	public long getNonce() {
 		return this.nonce;
 	}
-
-	public abstract String serialize();
+	
+	public abstract String getHash();
 
 }

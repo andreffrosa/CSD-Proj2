@@ -9,6 +9,10 @@ public enum  BFTWalletRequestType {
 	GET_LEDGER,
 	PUT_OPI,
 	GET_OPI,
-	GET_BETWEEN_OPI
+	GET_BETWEEN_OPI,
+	PUT_SUM,
+	GET_SUM,
+	ADD,
+	DIF
 
 }

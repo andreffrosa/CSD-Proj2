@@ -1,11 +1,13 @@
 package wallet;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import hlib.hj.mlib.HomoAdd;
 import utils.Cryptography;
 import wallet.exceptions.InvalidAddressException;
 import wallet.exceptions.InvalidAmountException;
@@ -20,12 +22,15 @@ public class SimpleWallet implements Wallet {
 
 	private Map<String, Double> accounts;
 	private Map<String, Long> orderPreservingVariables;
+	private Map<String, BigInteger> sumVariables;
 	private List<String> admins;
 
 	public SimpleWallet() {
 		accounts = new HashMap<>( DEFAULT_SIZE );
 		
 		orderPreservingVariables = new HashMap<String, Long>( DEFAULT_SIZE );
+		
+		sumVariables = new HashMap<String, BigInteger>( DEFAULT_SIZE );
 		
 		admins = Cryptography.loadKeys(ADMINS_DIRECTORY, "publicKey");
 	}
@@ -124,22 +129,16 @@ public class SimpleWallet implements Wallet {
 
 	@Override
 	public boolean putOrderPreservingInt(String id, long n) {
-		System.out.println("put " + id + " " + n);
 		return orderPreservingVariables.putIfAbsent(id, n) == null;
 	}
 
 	@Override
 	public long getOrderPreservingInt(String id) {
-		
-		System.out.println("get " + id);
-		
 		// TODO: o que fazer quando não existe? Excepção?
 		Long n = orderPreservingVariables.get(id);
 		if( n != null ) {
-			System.out.println(n);
 			return n;
 		} else {
-			System.out.println("not found");
 			return 0L;
 		}
 	}
@@ -159,6 +158,36 @@ public class SimpleWallet implements Wallet {
 		}
 		
 		return result;
+	}
+
+	@Override
+	public boolean putSumInt(String id, BigInteger n) {
+		return sumVariables.putIfAbsent(id, n) == null;
+	}
+
+	@Override
+	public BigInteger getSumInt(String id) {
+		// TODO: o que fazer quando não existe? Excepção?
+		BigInteger n = sumVariables.get(id);
+		if( n != null ) {
+			return n;
+		} else {
+			return BigInteger.ZERO;
+		}
+	}
+
+	@Override
+	public BigInteger add(String key, BigInteger amount, BigInteger nSquare) {
+		BigInteger value = HomoAdd.sum(getSumInt(key), amount, nSquare);
+		sumVariables.put(key, value);
+		return value;
+	}
+
+	@Override
+	public BigInteger sub(String key, BigInteger amount, BigInteger nSquare) {
+		BigInteger value = HomoAdd.dif(getSumInt(key), amount, nSquare);
+		sumVariables.put(key, value);
+		return value;
 	}
 
 }

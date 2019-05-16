@@ -1,5 +1,6 @@
 package rest;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -28,8 +29,11 @@ import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
 import rest.entities.GetBetweenOrderPreservingRequest;
 import rest.entities.GetOrderPreservingRequest;
+import rest.entities.AddRequest;
+import rest.entities.GetSumRequest;
 import rest.entities.LedgerRequest;
 import rest.entities.PutOrderPreservingRequest;
+import rest.entities.PutSumRequest;
 import rest.entities.TransferRequest;
 import utils.Serializor;
 import wallet.Transaction;
@@ -280,7 +284,6 @@ public class RESTWalletClient implements Wallet {
 		return (Long) reply.getContent();
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public List<Entry<String, Long>> getBetween(String k1, String k2) {
 		GetBetweenOrderPreservingRequest request = new GetBetweenOrderPreservingRequest(k1, k2);
@@ -297,6 +300,78 @@ public class RESTWalletClient implements Wallet {
 		});
 		
 		return Serializor.deserialize((String) reply.getContent());
+	}
+
+	@Override
+	public boolean putSumInt(String id, BigInteger n) {
+		PutSumRequest request = new PutSumRequest(id, n);
+		
+		BFTReply reply = processRequest((location) -> {
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.PUT_SUM_PATH).request()
+					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
+			
+			if (response.getStatus() == 200) {
+				byte[] result = (byte[]) response.readEntity(byte[].class);
+				return BFTReply.processReply(result, request.getHash());
+			} else
+				throw new RuntimeException("WalletClient putSumInt: " + response.getStatus());
+		});
+		
+		return (Boolean) reply.getContent();
+	}
+
+	@Override
+	public BigInteger getSumInt(String id) {
+		GetSumRequest request = new GetSumRequest(id);
+		
+		BFTReply reply = processRequest((location) -> {
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.GET_SUM_PATH).request()
+					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
+			
+			if (response.getStatus() == 200) {
+				byte[] result = (byte[]) response.readEntity(byte[].class);
+				return BFTReply.processReply(result, request.getHash());
+			} else
+				throw new RuntimeException("WalletClient getSumInt: " + response.getStatus());
+		});
+		
+		return (BigInteger) reply.getContent();
+	}
+
+	@Override
+	public BigInteger add(String key, BigInteger amount, BigInteger nSquare) {
+		AddRequest request = new AddRequest(key, amount, nSquare);
+		
+		BFTReply reply = processRequest((location) -> {
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.ADD_PATH).request()
+					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
+			
+			if (response.getStatus() == 200) {
+				byte[] result = (byte[]) response.readEntity(byte[].class);
+				return BFTReply.processReply(result, request.getHash());
+			} else
+				throw new RuntimeException("WalletClient add: " + response.getStatus());
+		});
+		
+		return (BigInteger) reply.getContent();
+	}
+
+	@Override
+	public BigInteger sub(String key, BigInteger amount, BigInteger nSquare) {
+		AddRequest request = new AddRequest(key, amount, nSquare);
+		
+		BFTReply reply = processRequest((location) -> {
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.DIF_PATH).request()
+					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
+			
+			if (response.getStatus() == 200) {
+				byte[] result = (byte[]) response.readEntity(byte[].class);
+				return BFTReply.processReply(result, request.getHash());
+			} else
+				throw new RuntimeException("WalletClient sub: " + response.getStatus());
+		});
+		
+		return (BigInteger) reply.getContent();
 	}
 
 }

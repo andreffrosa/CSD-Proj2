@@ -1,14 +1,19 @@
 package bft;
 
+import java.math.BigInteger;
+
 import com.google.gson.GsonBuilder;
 
 import rest.DistributedWallet;
+import rest.entities.AddRequest;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
 import rest.entities.GetBetweenOrderPreservingRequest;
 import rest.entities.GetOrderPreservingRequest;
+import rest.entities.GetSumRequest;
 import rest.entities.LedgerRequest;
 import rest.entities.PutOrderPreservingRequest;
+import rest.entities.PutSumRequest;
 import rest.entities.TransferRequest;
 
 /**
@@ -65,7 +70,6 @@ public class BFTReplicatedWallet implements DistributedWallet {
 	@Override
 	public byte[] putOrderPreservingInt(String request) {
 		PutOrderPreservingRequest req = new GsonBuilder().create().fromJson(request, PutOrderPreservingRequest.class);
-		System.out.println(request);
 		return wallet.putOrderPreservingInt(req.id, req.value, req.getNonce());
 	}
 
@@ -79,6 +83,30 @@ public class BFTReplicatedWallet implements DistributedWallet {
 	public byte[] getBetween(String request) {
 		GetBetweenOrderPreservingRequest req = new GsonBuilder().create().fromJson(request, GetBetweenOrderPreservingRequest.class);
 		return wallet.getBetween(req.k1, req.k2, req.getNonce());
+	}
+
+	@Override
+	public byte[] putSumInt(String request) {
+		PutSumRequest req = new GsonBuilder().create().fromJson(request, PutSumRequest.class);
+		return wallet.putSumInt(req.id, req.value, req.getNonce());
+	}
+
+	@Override
+	public byte[] getSumInt(String request) {
+		GetSumRequest req = new GsonBuilder().create().fromJson(request, GetSumRequest.class);
+		return wallet.getSumInt(req.id, req.getNonce());
+	}
+
+	@Override
+	public byte[] add(String request) {
+		AddRequest req = new GsonBuilder().create().fromJson(request, AddRequest.class);
+		return wallet.add(req.id, req.amount, req.nSquare, req.getNonce());
+	}
+
+	@Override
+	public byte[] sub(String request) {
+		AddRequest req = new GsonBuilder().create().fromJson(request, AddRequest.class);
+		return wallet.dif(req.id, req.amount, req.nSquare, req.getNonce());
 	}
 
 }

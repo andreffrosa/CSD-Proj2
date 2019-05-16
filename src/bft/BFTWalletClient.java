@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.math.BigInteger;
 import java.util.List;
 
 import bft.reply.ReplyExtractor;
@@ -159,5 +160,86 @@ public class BFTWalletClient {
 			throw new RuntimeException("Exception getting between OPInt: " + e.getMessage());
 		}
 	}
+	
+	byte[] putSumInt(String id, BigInteger value, long nonce) {
+		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
 
+			objOut.writeObject(BFTWalletRequestType.PUT_SUM);
+			objOut.writeLong(nonce);
+			objOut.writeUTF(id);
+			objOut.writeObject(value);
+
+			objOut.flush();
+			byteOut.flush();
+
+			byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
+			
+			return reply;
+		} catch (IOException e) {
+			throw new RuntimeException("Exception putting SumInt: " + e.getMessage());
+		}
+	}
+
+	byte[] getSumInt(String id, long nonce) {
+		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
+
+			objOut.writeObject(BFTWalletRequestType.GET_SUM);
+			objOut.writeLong(nonce);
+			objOut.writeUTF(id);
+
+			objOut.flush();
+			byteOut.flush();
+
+			byte[] reply = serviceProxy.invokeUnordered(byteOut.toByteArray());
+			
+			return reply;
+		} catch (IOException e) {
+			throw new RuntimeException("Exception getting SumInt: " + e.getMessage());
+		}
+	}
+	
+	byte[] add(String id, BigInteger amount, BigInteger nSquare, long nonce) {
+		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
+
+			objOut.writeObject(BFTWalletRequestType.ADD);
+			objOut.writeLong(nonce);
+			objOut.writeUTF(id);
+			objOut.writeObject(amount);
+			objOut.writeObject(nSquare);
+
+			objOut.flush();
+			byteOut.flush();
+
+			byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
+			
+			return reply;
+		} catch (IOException e) {
+			throw new RuntimeException("Exception putting add: " + e.getMessage());
+		}
+	}
+	
+	byte[] dif(String id, BigInteger amount, BigInteger nSquare, long nonce) {
+		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
+
+			objOut.writeObject(BFTWalletRequestType.DIF);
+			objOut.writeLong(nonce);
+			objOut.writeUTF(id);
+			objOut.writeObject(amount);
+			objOut.writeObject(nSquare);
+
+			objOut.flush();
+			byteOut.flush();
+
+			byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
+			
+			return reply;
+		} catch (IOException e) {
+			throw new RuntimeException("Exception putting add: " + e.getMessage());
+		}
+	}
+	
 }

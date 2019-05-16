@@ -1,5 +1,6 @@
 package wallet;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -45,5 +46,25 @@ public interface Wallet {
 	 * 
 	 * */
 	List<Entry<String, Long>> getBetween(String k1, String k2);
+	
+	/**
+	 * 
+	 * */
+	boolean putSumInt(String id, BigInteger n); // precisa de assinatura?
+	
+	/**
+	 * 
+	 * */
+	BigInteger getSumInt(String id);
+	
+	/**
+	 * 
+	 * */
+	BigInteger add(String key, BigInteger amount, BigInteger nSquare); // TODO: passar isto?
+	
+	/**
+	 * 
+	 * */
+	BigInteger sub(String key, BigInteger amount, BigInteger nSquare); // TODO: passar isto?
 	
 }

@@ -8,6 +8,7 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.math.BigInteger;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,12 +26,15 @@ import bft.reply.BFTWalletResultType;
 import bftsmart.tom.MessageContext;
 import bftsmart.tom.ServiceReplica;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
+import rest.entities.AddRequest;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
 import rest.entities.GetBetweenOrderPreservingRequest;
 import rest.entities.GetOrderPreservingRequest;
+import rest.entities.GetSumRequest;
 import rest.entities.LedgerRequest;
 import rest.entities.PutOrderPreservingRequest;
+import rest.entities.PutSumRequest;
 import rest.entities.TransferRequest;
 import utils.Serializor;
 import wallet.ByzantineWallet;
@@ -299,6 +303,84 @@ public class BFTWalletServer extends DefaultRecoverable {
 					System.out.println("(" + iterations + ") getBetweenOPI(" + k1 + ", " + k2 + ") : " + values.size());
 				}
 				break;
+			case PUT_SUM:
+				id = objIn.readUTF();
+				BigInteger bigI = (BigInteger) objIn.readObject();
+
+				op_hash = PutSumRequest.computeHash(id, bigI, nonce);
+				
+				val = chechResults(op_hash);
+				cached = (val != null);
+				if(!cached) {
+
+					Boolean result = wallet.putSumInt(id, bigI);
+
+					objOut.writeObject(op_hash);
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeObject(result);
+					hasReply = true;
+
+					System.out.println("(" + iterations + ") putSum(" + id + ", " + bigI + ") : " + result);
+				}
+				break;
+			case GET_SUM:
+				id = objIn.readUTF();
+
+				op_hash = GetSumRequest.computeHash(id, nonce);
+				val = chechResults(op_hash);
+				cached = (val != null);
+				if(!cached) {
+
+					BigInteger result = wallet.getSumInt(id);
+
+					objOut.writeObject(op_hash);
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeObject(result);
+					hasReply = true;
+
+					System.out.println("(" + iterations + ") getSum(" + id + ") : " + result);
+				}
+				break;
+			case ADD:
+				id = objIn.readUTF();
+				BigInteger big_amount = (BigInteger) objIn.readObject();
+				BigInteger nSquare = (BigInteger) objIn.readObject();
+
+				op_hash = AddRequest.computeHash(id, big_amount, nSquare, nonce);
+				val = chechResults(op_hash);
+				cached = (val != null);
+				if(!cached) {
+
+					BigInteger result = wallet.add(id, big_amount, nSquare);
+
+					objOut.writeObject(op_hash);
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeObject(result);
+					hasReply = true;
+
+					System.out.println("(" + iterations + ") add(" + id + ", " + big_amount + ", " + nSquare + ") : " + result);
+				}
+				break;
+			case DIF:
+				id = objIn.readUTF();
+				big_amount = (BigInteger) objIn.readObject();
+				nSquare = (BigInteger) objIn.readObject();
+
+				op_hash = AddRequest.computeHash(id, big_amount, nSquare, nonce);
+				val = chechResults(op_hash);
+				cached = (val != null);
+				if(!cached) {
+
+					BigInteger result = wallet.sub(id, big_amount, nSquare);
+
+					objOut.writeObject(op_hash);
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeObject(result);
+					hasReply = true;
+
+					System.out.println("(" + iterations + ") sub(" + id + ", " + big_amount + ", " + nSquare + ") : " + result);
+				}
+				break;
 			}
 			
 			if(cached) {
@@ -412,6 +494,24 @@ public class BFTWalletServer extends DefaultRecoverable {
 					hasReply = true;
 
 					System.out.println("(" + iterations + ") getBetweenOPI(" + k1 + ", " + k2 + ") : " + values.size());
+				}
+				break;
+			case GET_SUM: 
+				id = objIn.readUTF();
+
+				op_hash = GetSumRequest.computeHash(id, nonce);
+				val = chechResults(op_hash);
+				cached = (val != null);
+				if(!cached) {
+
+					BigInteger result = wallet.getSumInt(id);
+
+					objOut.writeObject(op_hash);
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeObject(result);
+					hasReply = true;
+
+					System.out.println("(" + iterations + ") getSum(" + id + ") : " + result);
 				}
 				break;
 			default:

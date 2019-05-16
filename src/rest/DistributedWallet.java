@@ -1,5 +1,7 @@
 package rest;
 
+import java.math.BigInteger;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -74,5 +76,33 @@ public interface DistributedWallet {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	byte[] getBetween(String request);
+	
+	static final String PUT_SUM_PATH = "/PutSumInt/";
+	@POST
+	@Path(PUT_SUM_PATH)
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_OCTET_STREAM)
+	byte[] putSumInt(String request); // precisa de assinatura?
+	
+	static final String GET_SUM_PATH = "/GetSumInt/";
+	@POST
+	@Path(GET_SUM_PATH)
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_OCTET_STREAM)
+	byte[] getSumInt(String request);
+	
+	static final String ADD_PATH = "/add/";
+	@POST
+	@Path(ADD_PATH)
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_OCTET_STREAM)
+	byte[] add(String request);
+	
+	static final String DIF_PATH = "/dif/";
+	@POST
+	@Path(DIF_PATH)
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_OCTET_STREAM)
+	byte[] sub(String request);
 	
 }

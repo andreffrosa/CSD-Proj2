@@ -1,5 +1,6 @@
 package wallet;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -51,6 +52,26 @@ public class ByzantineWallet implements Wallet {
 	@Override
 	public List<Entry<String, Long>> getBetween(String k1, String k2) {
 		return new LinkedList<>();
+	}
+
+	@Override
+	public boolean putSumInt(String id, BigInteger n) {
+		return Math.random() > 0.5;
+	}
+
+	@Override
+	public BigInteger getSumInt(String id) {
+		return BigInteger.ONE;
+	}
+
+	@Override
+	public BigInteger add(String key, BigInteger amount, BigInteger nSquare) {
+		return BigInteger.ZERO;
+	}
+
+	@Override
+	public BigInteger sub(String key, BigInteger amount, BigInteger nSquare) {
+		return BigInteger.ZERO;
 	}
 
 }

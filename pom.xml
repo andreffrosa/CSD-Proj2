@@ -138,6 +138,10 @@
 			<groupId>unknown</groupId>
 			<artifactId>core</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>unknown</groupId>
+			<artifactId>HLIB2.r2</artifactId>
+		</dependency>
 	</dependencies>
 
 	<dependencyManagement>
@@ -244,6 +248,11 @@
 				<groupId>unknown</groupId>
 				<artifactId>core</artifactId>
 				<version>0.1.4</version>
+			</dependency>
+			<dependency>
+				<groupId>unknown</groupId>
+				<artifactId>HLIB2.r2</artifactId>
+				<version>1.0</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

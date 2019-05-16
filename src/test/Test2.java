@@ -42,7 +42,7 @@ public class Test2 {
 
 		/////////////////////////////////////////////////////
 
-		replica.stop();
+		// replica.stop();
 	}
 
 	private static void testSum(Wallet wallet) {

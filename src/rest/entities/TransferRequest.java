@@ -10,26 +10,30 @@ public class TransferRequest extends AbstractRestRequest {
 
 	private static final long serialVersionUID = 1L;
 
-	public String transaction;
+	//public String transaction;
+	public Transaction transaction;
 
 	public TransferRequest() {
 	}
 
 	public TransferRequest(Transaction transaction) {
 		super();
-		Gson gson = new GsonBuilder().create();
-		this.transaction = gson.toJson(transaction);
+		//Gson gson = new GsonBuilder().create();
+		//this.transaction = gson.toJson(transaction);
+		this.transaction = transaction;
 	}
 
 	public TransferRequest(Transaction transaction, long nonce) {
 		super(nonce);
-		Gson gson = new GsonBuilder().create();
-		this.transaction = gson.toJson(transaction);
+		//Gson gson = new GsonBuilder().create();
+		//this.transaction = gson.toJson(transaction);
+		this.transaction = transaction;
 	}
 
 	public Transaction deserialize() {
-		Gson gson = new GsonBuilder().create();
-		return gson.fromJson(transaction, Transaction.class);
+		//Gson gson = new GsonBuilder().create();
+		//return gson.fromJson(transaction, Transaction.class);
+		return transaction;
 	}
 	
 	public static String computeHash(String signature, long nonce) {
@@ -38,7 +42,7 @@ public class TransferRequest extends AbstractRestRequest {
 
 	@Override
 	public String getHash() {
-		return computeHash(deserialize().getSignature(), getNonce());
+		return computeHash(transaction.getSignature(), getNonce());
 	}
 	
 }

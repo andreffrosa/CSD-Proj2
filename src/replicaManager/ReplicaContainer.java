@@ -26,6 +26,8 @@ public class ReplicaContainer {
 			Class c = classLoader.loadClass(className);
 			@SuppressWarnings("unchecked")
 			Method m = c.getDeclaredMethod("main", String[].class);
+			
+			System.out.println(System.getProperty("user.dir"));
 
 			m.invoke(null, (Object)r_args);
 		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {

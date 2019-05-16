@@ -1,20 +1,11 @@
 package rest;
 
-import java.math.BigInteger;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import rest.entities.AtomicTransferRequest;
-import rest.entities.BalanceRequest;
-import rest.entities.GetBetweenOrderPreservingRequest;
-import rest.entities.GetOrderPreservingRequest;
-import rest.entities.LedgerRequest;
-import rest.entities.PutOrderPreservingRequest;
-import rest.entities.TransferRequest;
 import wallet.exceptions.InvalidAddressException;
 import wallet.exceptions.InvalidAmountException;
 import wallet.exceptions.InvalidSignatureException;

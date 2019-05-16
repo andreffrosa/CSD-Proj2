@@ -9,27 +9,26 @@ import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.net.ssl.SSLSession;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.net.ssl.SSLSession;
 
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 
-import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import bft.reply.BFTReply;
 import bft.reply.InvalidRepliesException;
+import rest.entities.AddRequest;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
 import rest.entities.GetBetweenOrderPreservingRequest;
 import rest.entities.GetOrderPreservingRequest;
-import rest.entities.AddRequest;
 import rest.entities.GetSumRequest;
 import rest.entities.LedgerRequest;
 import rest.entities.PutOrderPreservingRequest;

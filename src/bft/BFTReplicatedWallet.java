@@ -1,7 +1,5 @@
 package bft;
 
-import java.math.BigInteger;
-
 import com.google.gson.GsonBuilder;
 
 import rest.DistributedWallet;

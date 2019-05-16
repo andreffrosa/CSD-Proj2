@@ -8,11 +8,9 @@ import hlib.hj.mlib.HomoOpeInt;
 import hlib.hj.mlib.PaillierKey;
 import replicaManager.ReplicaManagerRESTClient;
 import rest.RESTWalletClient;
-import rest.RESTWalletServer;
 import utils.Cryptography;
 import utils.IO;
 import wallet.Wallet;
-import wallet.client.WalletClient;
 
 public class Test2 {
 	// Temp

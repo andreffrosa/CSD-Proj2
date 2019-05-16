@@ -127,9 +127,6 @@ public class BFTReply implements java.io.Serializable {
 				BFTWalletResultType result_status = (BFTWalletResultType) objIn.readObject();
 				Object value = objIn.readObject();
 
-				System.out.println("recv: " + op_hash_rcv);
-				System.out.println("expt: " + op_hash);
-				
 				if (op_hash_rcv.equals(op_hash)) {
 					return new BFTReply(value, result_status);
 				} else

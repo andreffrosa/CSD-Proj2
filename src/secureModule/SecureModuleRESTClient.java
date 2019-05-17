@@ -83,10 +83,12 @@ public class SecureModuleRESTClient {
 
 	public int compareSumInt(BigInteger v1, BigInteger v2, String cipheredKey) {
 		
+		String request = new GsonBuilder().create().toJson(new CompareRequest(v1, v2, cipheredKey));
+		
 		return processRequest((location) -> {
 			Response response = client.target(location).path(SecureModule.PATH + SecureModule.COMPARE_SUM_PATH)
 					.request()
-					.post(Entity.entity(new CompareRequest(v1, v2, cipheredKey), MediaType.APPLICATION_JSON));
+					.post(Entity.entity(request, MediaType.APPLICATION_JSON));
 
 			if (response.getStatus() == 200) {
 				return response.readEntity(int.class);

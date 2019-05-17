@@ -25,6 +25,6 @@ public interface SecureModule {
 	@Path(COMPARE_SUM_PATH)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public int compareSumInt(CompareRequest request);
+	public int compareSumInt(String request);
 	
 }

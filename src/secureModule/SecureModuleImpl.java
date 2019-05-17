@@ -3,6 +3,8 @@ package secureModule;
 import java.math.BigInteger;
 import java.security.PrivateKey;
 
+import javax.crypto.SecretKey;
+
 import com.google.gson.GsonBuilder;
 
 import hlib.hj.mlib.HomoAdd;
@@ -13,10 +15,10 @@ import utils.Cryptography;
 
 public class SecureModuleImpl implements SecureModule {
 
-	private PrivateKey private_key;
+	private SecretKey secret_key;
 
 	public SecureModuleImpl() {
-		private_key = Cryptography.parsePrivateKey(Cryptography.loadKeys("./keys/secureModuleServer/", "privateKey").get(0), null, "RSA");
+		secret_key = Cryptography.parseSecretKey(Cryptography.loadKeys("./keys/secureModuleServer/", "secretKey").get(0), null, "AES");
 	}
 
 	public long addOPI(String req) {
@@ -28,7 +30,7 @@ public class SecureModuleImpl implements SecureModule {
 		
 		// Decrypt key
 		byte[] rawCipheredKey = java.util.Base64.getDecoder().decode(cipheredKey);
-		long key = Bytes.fromBytes(Cryptography.decrypt(private_key, rawCipheredKey, "RSA"));
+		long key = Bytes.fromBytes(Cryptography.decrypt(secret_key, rawCipheredKey, "AES"));
 
 		// Decrypt opi
 		HomoOpeInt ope = new HomoOpeInt(key);
@@ -49,15 +51,17 @@ public class SecureModuleImpl implements SecureModule {
 		return 0;
 	}
 
-	public int compareSumInt(CompareRequest request) {
-
+	public int compareSumInt(String req) {
+		try {
+		CompareRequest request = new GsonBuilder().create().fromJson(req, CompareRequest.class);
+		
 		BigInteger v1 = request.v1;
 		BigInteger v2 = request.v2;
 		String cipheredKey = request.cipheredKey;
 		
 		// Decrypt key
 		byte[] rawCipheredKey = java.util.Base64.getDecoder().decode(cipheredKey);
-		byte[] raw_key = Cryptography.decrypt(private_key, rawCipheredKey, "RSA");
+		byte[] raw_key = Cryptography.decrypt(secret_key, rawCipheredKey, "AES");
 		PaillierKey pk = HomoAdd.keyFromString(new String(raw_key));
 
 		// Decrypt v1 and v2
@@ -73,6 +77,10 @@ public class SecureModuleImpl implements SecureModule {
 		} catch(Exception e) {
 			e.printStackTrace();
 			return 0;  // TODO: O QUE FAZER?
+		}
+		} catch(Exception e) {
+			e.printStackTrace();
+			return 0;
 		}
 	} 
 

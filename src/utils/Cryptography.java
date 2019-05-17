@@ -25,6 +25,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+
 import org.bouncycastle.jcajce.provider.symmetric.Threefish;
 
 public class Cryptography {
@@ -34,22 +38,28 @@ public class Cryptography {
 	private static final String keyGenAlgorithm = "EC";
 	private static final String signatureAlgorithm = "SHA256withECDSA";
 	private static final String DIGEST_ALGORITHM = "SHA256";
-	//private static final String CIPHER_ALGORITHM = "RSA";
-	
+	// private static final String CIPHER_ALGORITHM = "RSA";
+
+	public static String generateSymetricKey(String algorithm, int size) throws NoSuchAlgorithmException {
+		KeyGenerator generator = KeyGenerator.getInstance(algorithm);
+		generator.init(size);
+		SecretKey ks = generator.generateKey();
+		return java.util.Base64.getEncoder().encodeToString(ks.getEncoded());
+	}
 
 	public static KeyPair genRSAKeys() {
 		KeyPair kp = null;
 		try {
-			KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA") ;
-            kpg.initialize(1024);
-            kp = kpg.generateKeyPair();
+			KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+			kpg.initialize(2048);
+			kp = kpg.generateKeyPair();
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		}
 
 		return kp;
 	}
-	
+
 	public static KeyPair genKeys() {
 		KeyPair kp = null;
 		try {
@@ -89,7 +99,7 @@ public class Cryptography {
 
 		return null;
 	}
-	
+
 	public static PrivateKey parsePrivateKey(String privateKey, KeyFactory kf, String alg) {
 
 		try {
@@ -116,7 +126,7 @@ public class Cryptography {
 
 		return null;
 	}
-	
+
 	public static PublicKey parsePublicKey(String publicKey, KeyFactory kf, String alg) {
 
 		try {
@@ -128,6 +138,11 @@ public class Cryptography {
 		}
 
 		return null;
+	}
+
+	public static SecretKey parseSecretKey(String key, KeyFactory kf, String alg) {
+		byte[] decoded = java.util.Base64.getDecoder().decode(key);
+		return new SecretKeySpec(decoded, 0, decoded.length, alg);
 	}
 
 	public static String sign(byte[] message, String privateKey) {
@@ -263,35 +278,33 @@ public class Cryptography {
 
 	public static byte[] encrypt(Key key, byte[] plainText, String alg) {
 		try {
-            javax.crypto.Cipher c = javax.crypto.Cipher.getInstance(alg) ;
-            c.init( javax.crypto.Cipher.ENCRYPT_MODE, key ) ;
-            
-            byte[] cipherText = new byte[c.getOutputSize(plainText.length)];
-    		int ctLength = c.update(plainText, 0, plainText.length, cipherText, 0);
-    		ctLength += c.doFinal(cipherText, ctLength);	
+			javax.crypto.Cipher c = javax.crypto.Cipher.getInstance(alg);
+			c.init(javax.crypto.Cipher.ENCRYPT_MODE, key);
 
-    		return cipherText;
-            
-        }
-        catch( Exception x ) {
-            x.printStackTrace() ;
-        }
-        return null;
+			byte[] cipherText = new byte[c.getOutputSize(plainText.length)];
+			int ctLength = c.update(plainText, 0, plainText.length, cipherText, 0);
+			ctLength += c.doFinal(cipherText, ctLength);
+
+			return cipherText;
+
+		} catch (Exception x) {
+			x.printStackTrace();
+		}
+		return null;
 	}
-	
+
 	public static byte[] decrypt(Key key, byte[] cipherText, String alg) {
 		try {
-			javax.crypto.Cipher c = javax.crypto.Cipher.getInstance(alg) ;
-			c.init( javax.crypto.Cipher.DECRYPT_MODE, key ) ;
+			javax.crypto.Cipher c = javax.crypto.Cipher.getInstance(alg);
+			c.init(javax.crypto.Cipher.DECRYPT_MODE, key);
 
 			byte[] plainText = new byte[c.getOutputSize(cipherText.length)];
 			int ptLength = c.update(cipherText, 0, cipherText.length, plainText, 0);
 			ptLength += c.doFinal(plainText, ptLength);
-			
+
 			return Arrays.copyOfRange(plainText, 0, ptLength);
-		}
-		catch( Exception x ) {
-			x.printStackTrace() ;
+		} catch (Exception x) {
+			x.printStackTrace();
 		}
 		return null;
 	}

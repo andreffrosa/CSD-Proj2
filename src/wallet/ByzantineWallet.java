@@ -74,4 +74,16 @@ public class ByzantineWallet implements Wallet {
 		return BigInteger.ZERO;
 	}
 
+	@Override
+	public boolean cond_set(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey,
+			String upd_key, String upd_key_type, String upd_val) {
+		return Math.random() > 0.5;
+	}
+
+	@Override
+	public boolean cond_add(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey,
+			String upd_key, String upd_key_type, String upd_val, String upd_auxArg) {
+		return Math.random() > 0.5;
+	}
+
 }

@@ -67,4 +67,14 @@ public interface Wallet {
 	 * */
 	BigInteger sub(String key, BigInteger amount, BigInteger nSquare); // TODO: passar isto?
 	
+	/**
+	 * 
+	 * */
+	boolean cond_set(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey, String upd_key, String upd_key_type, String upd_val);
+	
+	/**
+	 * 
+	 * */
+	boolean cond_add(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey, String upd_key, String upd_key_type, String upd_val, String upd_auxArg);
+	
 }

@@ -1,15 +1,13 @@
 package test;
 
 import java.math.BigInteger;
-import java.security.KeyPair;
-import java.security.PublicKey;
-import java.util.Random;
 
 import javax.crypto.SecretKey;
 
 import hlib.hj.mlib.HomoAdd;
 import hlib.hj.mlib.HomoOpeInt;
 import hlib.hj.mlib.PaillierKey;
+import secureModule.SecureModuleImpl;
 import secureModule.SecureModuleRESTClient;
 import utils.Bytes;
 import utils.Cryptography;
@@ -38,8 +36,8 @@ public class TestSecureModule {
 	
 	long v1 = ope.encrypt(10);
 
-	SecretKey secretKey = Cryptography.parseSecretKey(Cryptography.loadKeys("./keys/secureModuleServer/", "secretKey").get(0), null, "AES");
-	byte[] rawCipheredKey = Cryptography.encrypt(secretKey, Bytes.toBytes(key), "AES");
+	SecretKey secretKey = Cryptography.parseSecretKey(Cryptography.loadKeys("./keys/secureModuleServer/", "secretKey").get(0), null, SecureModuleImpl.CIPHER_ALGORITHM);
+	byte[] rawCipheredKey = Cryptography.encrypt(secretKey, Bytes.toBytes(key), SecureModuleImpl.CIPHER_ALGORITHM);
 	String cipheredKey = java.util.Base64.getEncoder().encodeToString(rawCipheredKey);
 	
 	long result = sec_module.addOPI(v1, 100, cipheredKey);
@@ -50,7 +48,7 @@ public class TestSecureModule {
 	
 	PaillierKey pk = HomoAdd.generateKey();
 	
-	rawCipheredKey = Cryptography.encrypt(secretKey, HomoAdd.stringFromKey(pk).getBytes(), "AES");
+	rawCipheredKey = Cryptography.encrypt(secretKey, HomoAdd.stringFromKey(pk).getBytes(), SecureModuleImpl.CIPHER_ALGORITHM);
 	cipheredKey = java.util.Base64.getEncoder().encodeToString(rawCipheredKey);
 	
 	BigInteger big1Code = HomoAdd.encrypt(new BigInteger("1"), pk);	

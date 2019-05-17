@@ -1,7 +1,6 @@
 package secureModule;
 
 import java.math.BigInteger;
-import java.security.PrivateKey;
 
 import javax.crypto.SecretKey;
 
@@ -15,10 +14,12 @@ import utils.Cryptography;
 
 public class SecureModuleImpl implements SecureModule {
 
+	public static final String CIPHER_ALGORITHM = "AES";
+	
 	private SecretKey secret_key;
 
 	public SecureModuleImpl() {
-		secret_key = Cryptography.parseSecretKey(Cryptography.loadKeys("./keys/secureModuleServer/", "secretKey").get(0), null, "AES");
+		secret_key = Cryptography.parseSecretKey(Cryptography.loadKeys("./keys/secureModuleServer/", "secretKey").get(0), null, CIPHER_ALGORITHM);
 	}
 
 	public long addOPI(String req) {
@@ -30,7 +31,7 @@ public class SecureModuleImpl implements SecureModule {
 		
 		// Decrypt key
 		byte[] rawCipheredKey = java.util.Base64.getDecoder().decode(cipheredKey);
-		long key = Bytes.fromBytes(Cryptography.decrypt(secret_key, rawCipheredKey, "AES"));
+		long key = Bytes.fromBytes(Cryptography.decrypt(secret_key, rawCipheredKey, CIPHER_ALGORITHM));
 
 		// Decrypt opi
 		HomoOpeInt ope = new HomoOpeInt(key);
@@ -61,7 +62,7 @@ public class SecureModuleImpl implements SecureModule {
 		
 		// Decrypt key
 		byte[] rawCipheredKey = java.util.Base64.getDecoder().decode(cipheredKey);
-		byte[] raw_key = Cryptography.decrypt(secret_key, rawCipheredKey, "AES");
+		byte[] raw_key = Cryptography.decrypt(secret_key, rawCipheredKey, CIPHER_ALGORITHM);
 		PaillierKey pk = HomoAdd.keyFromString(new String(raw_key));
 
 		// Decrypt v1 and v2

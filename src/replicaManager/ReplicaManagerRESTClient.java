@@ -43,15 +43,15 @@ public class ReplicaManagerRESTClient {
 				.withConfig(config).build();
 	}
 
-	public void launch(String fileName, byte[] hash, String className, String[] args) throws InvalidPasswordException, HashMisMatchException {
+	public String launch(String fileName, byte[] hash, String className, String[] args) throws InvalidPasswordException, HashMisMatchException {
 
 		LaunchRequest request = new LaunchRequest(password, fileName, hash, className, args);
 
 		Response response = client.target(server_location).path(ReplicaManagerService.PATH + "/launch/").request()
 				.post(Entity.entity(request, MediaType.APPLICATION_JSON));
 
-		if (response.getStatus() == 200 || response.getStatus() == 204) {
-			return;
+		if (response.getStatus() == 200) {
+			return response.readEntity(String.class);
 		} else if(response.getStatus() == 401) {
 			String message = response.readEntity(String.class);
 			throw new InvalidPasswordException(message);
@@ -63,12 +63,15 @@ public class ReplicaManagerRESTClient {
 		}
 	}
 
-	public void stop() throws InvalidPasswordException {
+	public boolean stop(String id) throws InvalidPasswordException {
+		
+		StopRequest request = new StopRequest(password, id);
+		
 		Response response = client.target(server_location).path(ReplicaManagerService.PATH + "/stop/").request()
-				.post(Entity.entity(password, MediaType.APPLICATION_JSON));
+				.post(Entity.entity(request, MediaType.APPLICATION_JSON));
 
-		if (response.getStatus() == 200 || response.getStatus() == 204) {
-			return;
+		if (response.getStatus() == 200) {
+			return response.readEntity(boolean.class);
 		} else if(response.getStatus() == 401) {
 			String message = response.readEntity(String.class);
 			throw new InvalidPasswordException(message);

@@ -13,11 +13,11 @@ public interface ReplicaManagerService {
 	@POST
 	@Path("/launch")
 	@Consumes(MediaType.APPLICATION_JSON)
-	public void launch(LaunchRequest request);
+	public String launch(LaunchRequest request);
 
 	@POST
 	@Path("/stop")
 	@Consumes(MediaType.APPLICATION_JSON)
-	public void stop(String password);
+	public boolean stop(StopRequest request);
 
 }

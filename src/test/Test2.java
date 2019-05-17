@@ -23,7 +23,7 @@ public class Test2 {
 
 		ReplicaManagerRESTClient replica = new ReplicaManagerRESTClient("CSD1819", "https://localhost:8030/");
 
-		replica.launch(fileName, hash, className, r_args);
+		String id = replica.launch(fileName, hash, className, r_args);
 
 		System.out.println("Replica lauched!");
 
@@ -42,7 +42,7 @@ public class Test2 {
 
 		/////////////////////////////////////////////////////
 
-		replica.stop();
+		replica.stop(id);
 	}
 
 	private static void testSum(Wallet wallet) {

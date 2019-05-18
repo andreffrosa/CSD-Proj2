@@ -11,6 +11,7 @@ import rest.RESTWalletClient;
 import utils.Cryptography;
 import utils.IO;
 import wallet.Wallet;
+import wallet.exceptions.InvalidAddressException;
 
 public class Test2 {
 	// Temp
@@ -79,7 +80,7 @@ public class Test2 {
 		}
 	}
 
-	private static void testOPI(Wallet wallet) {
+	private static void testOPI(Wallet wallet) throws InvalidAddressException {
 		long key = HomoOpeInt.generateKey();
 		HomoOpeInt ope = new HomoOpeInt(key);
 

@@ -42,6 +42,7 @@ import wallet.Wallet;
 import wallet.exceptions.InvalidAddressException;
 import wallet.exceptions.InvalidAmountException;
 import wallet.exceptions.InvalidSignatureException;
+import wallet.exceptions.InvalidTypeException;
 import wallet.exceptions.NotEnoughMoneyException;
 
 public class RESTWalletClient implements Wallet {
@@ -99,7 +100,7 @@ public class RESTWalletClient implements Wallet {
 				return requestHandler.execute(replicas.get(index));
 			} catch (ProcessingException | InvalidRepliesException e) {
 				e.printStackTrace();
-				
+
 				if (e.getMessage().contains("java.net.ConnectException")
 						|| e.getMessage().contains("java.net.SocketTimeoutException")
 						|| e instanceof InvalidRepliesException) {
@@ -137,7 +138,8 @@ public class RESTWalletClient implements Wallet {
 		TransferRequest request = new TransferRequest(transaction);
 
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.TRANSFER_PATH).request()
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.TRANSFER_PATH)
+					.request()
 					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
 
 			if (response.getStatus() == 200) {
@@ -162,8 +164,8 @@ public class RESTWalletClient implements Wallet {
 			default:
 				break;
 			}
-		} 
-		
+		}
+
 		return (Boolean) reply.getContent();
 	}
 
@@ -174,7 +176,8 @@ public class RESTWalletClient implements Wallet {
 		AtomicTransferRequest request = new AtomicTransferRequest(transactions);
 
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.ATOMIC_TRANSFER_PATH).request()
+			Response response = client.target(location)
+					.path(DistributedWallet.PATH + DistributedWallet.ATOMIC_TRANSFER_PATH).request()
 					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
 
 			if (response.getStatus() == 200) {
@@ -200,7 +203,7 @@ public class RESTWalletClient implements Wallet {
 				break;
 			}
 		}
-			
+
 		return (Boolean) reply.getContent();
 	}
 
@@ -210,7 +213,8 @@ public class RESTWalletClient implements Wallet {
 		BalanceRequest request = new BalanceRequest(who);
 
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.BALANCE_PATH).request()
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.BALANCE_PATH)
+					.request()
 					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
 
 			if (response.getStatus() == 200) {
@@ -219,7 +223,7 @@ public class RESTWalletClient implements Wallet {
 			} else
 				throw new RuntimeException("WalletClient currentAmount: " + response.getStatus());
 		});
-		
+
 		return (Double) reply.getContent();
 	}
 
@@ -230,11 +234,10 @@ public class RESTWalletClient implements Wallet {
 		LedgerRequest request = new LedgerRequest();
 
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.LEDGER_PATH).request()
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.LEDGER_PATH)
+					.request()
 					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
 
-			System.out.println(response.toString());
-			
 			if (response.getStatus() == 200) {
 				byte[] result = (byte[]) response.readEntity(byte[].class);
 				return BFTReply.processReply(result, request.getHash());
@@ -249,30 +252,30 @@ public class RESTWalletClient implements Wallet {
 	public boolean putOrderPreservingInt(String id, long n) {
 
 		PutOrderPreservingRequest request = new PutOrderPreservingRequest(id, n);
-	
+
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.PUT_OPI_PATH).request()
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.PUT_OPI_PATH)
+					.request()
 					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
 
-			System.out.println(new GsonBuilder().create().toJson(request));
-			
 			if (response.getStatus() == 200) {
 				byte[] result = (byte[]) response.readEntity(byte[].class);
 				return BFTReply.processReply(result, request.getHash());
 			} else
 				throw new RuntimeException("WalletClient putOrderPreservingInt: " + response.getStatus());
 		});
-		
+
 		return (Boolean) reply.getContent();
 	}
 
 	@Override
-	public long getOrderPreservingInt(String id) {
-		
+	public long getOrderPreservingInt(String id) throws InvalidAddressException {
+
 		GetOrderPreservingRequest request = new GetOrderPreservingRequest(id);
 
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.GET_OPI_PATH).request()
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.GET_OPI_PATH)
+					.request()
 					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
 
 			if (response.getStatus() == 200) {
@@ -281,16 +284,28 @@ public class RESTWalletClient implements Wallet {
 			} else
 				throw new RuntimeException("WalletClient putOrderPreservingInt: " + response.getStatus());
 		});
-		
+
+		if (reply.isException()) {
+			String msg = (String) reply.getContent();
+
+			switch (reply.getResultType()) {
+			case INVALID_ADDRESS:
+				throw new InvalidAddressException(msg);
+			default:
+				break;
+			}
+		}
+
 		return (Long) reply.getContent();
 	}
 
 	@Override
-	public List<Entry<String, Long>> getBetween(String k1, String k2) {
+	public List<Entry<String, Long>> getBetween(String k1, String k2) throws InvalidAddressException {
 		GetBetweenOrderPreservingRequest request = new GetBetweenOrderPreservingRequest(k1, k2);
 
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.GET_BETWEEN_OPI_PATH).request()
+			Response response = client.target(location)
+					.path(DistributedWallet.PATH + DistributedWallet.GET_BETWEEN_OPI_PATH).request()
 					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
 
 			if (response.getStatus() == 200) {
@@ -299,119 +314,198 @@ public class RESTWalletClient implements Wallet {
 			} else
 				throw new RuntimeException("WalletClient getBetween: " + response.getStatus());
 		});
-		
+
+		if (reply.isException()) {
+			String msg = (String) reply.getContent();
+
+			switch (reply.getResultType()) {
+			case INVALID_ADDRESS:
+				throw new InvalidAddressException(msg);
+			default:
+				break;
+			}
+		}
+
 		return Serializor.deserialize((String) reply.getContent());
 	}
 
 	@Override
 	public boolean putSumInt(String id, BigInteger n) {
 		PutSumRequest request = new PutSumRequest(id, n);
-		
+
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.PUT_SUM_PATH).request()
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.PUT_SUM_PATH)
+					.request()
 					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
-			
+
 			if (response.getStatus() == 200) {
 				byte[] result = (byte[]) response.readEntity(byte[].class);
 				return BFTReply.processReply(result, request.getHash());
 			} else
 				throw new RuntimeException("WalletClient putSumInt: " + response.getStatus());
 		});
-		
+
 		return (Boolean) reply.getContent();
 	}
 
 	@Override
-	public BigInteger getSumInt(String id) {
+	public BigInteger getSumInt(String id) throws InvalidAddressException {
 		GetSumRequest request = new GetSumRequest(id);
-		
+
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.GET_SUM_PATH).request()
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.GET_SUM_PATH)
+					.request()
 					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
-			
+
 			if (response.getStatus() == 200) {
 				byte[] result = (byte[]) response.readEntity(byte[].class);
 				return BFTReply.processReply(result, request.getHash());
 			} else
 				throw new RuntimeException("WalletClient getSumInt: " + response.getStatus());
 		});
-		
+
+		if (reply.isException()) {
+			String msg = (String) reply.getContent();
+
+			switch (reply.getResultType()) {
+			case INVALID_ADDRESS:
+				throw new InvalidAddressException(msg);
+			default:
+				break;
+			}
+		}
+
 		return (BigInteger) reply.getContent();
 	}
 
 	@Override
-	public BigInteger add(String key, BigInteger amount, BigInteger nSquare) {
+	public BigInteger add(String key, BigInteger amount, BigInteger nSquare) throws InvalidAddressException {
 		AddRequest request = new AddRequest(key, amount, nSquare);
-		
+
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.ADD_PATH).request()
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.ADD_PATH)
+					.request()
 					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
-			
+
 			if (response.getStatus() == 200) {
 				byte[] result = (byte[]) response.readEntity(byte[].class);
 				return BFTReply.processReply(result, request.getHash());
 			} else
 				throw new RuntimeException("WalletClient add: " + response.getStatus());
 		});
-		
+
+		if (reply.isException()) {
+			String msg = (String) reply.getContent();
+
+			switch (reply.getResultType()) {
+			case INVALID_ADDRESS:
+				throw new InvalidAddressException(msg);
+			default:
+				break;
+			}
+		}
+
 		return (BigInteger) reply.getContent();
 	}
 
 	@Override
-	public BigInteger sub(String key, BigInteger amount, BigInteger nSquare) {
+	public BigInteger sub(String key, BigInteger amount, BigInteger nSquare) throws InvalidAddressException {
 		AddRequest request = new AddRequest(key, amount, nSquare);
-		
+
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.DIF_PATH).request()
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.DIF_PATH)
+					.request()
 					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
-			
+
 			if (response.getStatus() == 200) {
 				byte[] result = (byte[]) response.readEntity(byte[].class);
 				return BFTReply.processReply(result, request.getHash());
 			} else
 				throw new RuntimeException("WalletClient sub: " + response.getStatus());
 		});
-		
+
+		if (reply.isException()) {
+			String msg = (String) reply.getContent();
+
+			switch (reply.getResultType()) {
+			case INVALID_ADDRESS:
+				throw new InvalidAddressException(msg);
+			default:
+				break;
+			}
+		}
+
 		return (BigInteger) reply.getContent();
 	}
 
 	@Override
 	public boolean cond_set(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey,
-			String upd_key, String upd_key_type, String upd_val) {
-		
-		CondSetRequest request = new CondSetRequest(cond_key, cond_key_type, cond_val, cond_cipheredKey, upd_key, upd_key_type, upd_val);
-		
+			String upd_key, String upd_key_type, String upd_val) throws InvalidAddressException, InvalidTypeException {
+
+		CondSetRequest request = new CondSetRequest(cond_key, cond_key_type, cond_val, cond_cipheredKey, upd_key,
+				upd_key_type, upd_val);
+
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.COND_SET_PATH).request()
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.COND_SET_PATH)
+					.request()
 					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
-			
+
 			if (response.getStatus() == 200) {
 				byte[] result = (byte[]) response.readEntity(byte[].class);
 				return BFTReply.processReply(result, request.getHash());
 			} else
 				throw new RuntimeException("WalletClient cond_set: " + response.getStatus());
 		});
-		
+
+		if (reply.isException()) {
+			String msg = (String) reply.getContent();
+
+			switch (reply.getResultType()) {
+			case INVALID_ADDRESS:
+				throw new InvalidAddressException(msg);
+			case INVALID_TYPE:
+				throw new InvalidTypeException(msg);
+			default:
+				break;
+			}
+		}
+
 		return (Boolean) reply.getContent();
 	}
 
 	@Override
 	public boolean cond_add(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey,
-			String upd_key, String upd_key_type, String upd_val, String upd_auxArg) {
-		
-		CondAddRequest request = new CondAddRequest(cond_key, cond_key_type, cond_val, cond_cipheredKey, upd_key, upd_key_type, upd_val, upd_auxArg);
-		
+			String upd_key, String upd_key_type, String upd_val, String upd_auxArg)
+			throws InvalidAddressException, InvalidTypeException {
+
+		CondAddRequest request = new CondAddRequest(cond_key, cond_key_type, cond_val, cond_cipheredKey, upd_key,
+				upd_key_type, upd_val, upd_auxArg);
+
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.COND_ADD_PATH).request()
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.COND_ADD_PATH)
+					.request()
 					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
-			
+
 			if (response.getStatus() == 200) {
 				byte[] result = (byte[]) response.readEntity(byte[].class);
 				return BFTReply.processReply(result, request.getHash());
 			} else
 				throw new RuntimeException("WalletClient cond_add: " + response.getStatus());
 		});
-		
+
+		if (reply.isException()) {
+			String msg = (String) reply.getContent();
+
+			switch (reply.getResultType()) {
+			case INVALID_ADDRESS:
+				throw new InvalidAddressException(msg);
+			case INVALID_TYPE:
+				throw new InvalidTypeException(msg);
+			default:
+				break;
+			}
+		}
+
 		return (Boolean) reply.getContent();
 	}
 

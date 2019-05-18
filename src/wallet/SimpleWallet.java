@@ -10,9 +10,11 @@ import java.util.Map.Entry;
 import hlib.hj.mlib.HomoAdd;
 import secureModule.SecureModuleRESTClient;
 import utils.Cryptography;
+import utils.IO;
 import wallet.exceptions.InvalidAddressException;
 import wallet.exceptions.InvalidAmountException;
 import wallet.exceptions.InvalidSignatureException;
+import wallet.exceptions.InvalidTypeException;
 import wallet.exceptions.NotEnoughMoneyException;
 
 public class SimpleWallet implements Wallet {
@@ -28,15 +30,16 @@ public class SimpleWallet implements Wallet {
 	private SecureModuleRESTClient secureModule;
 
 	public SimpleWallet() {
-		accounts = new HashMap<>( DEFAULT_SIZE );
+		accounts = new HashMap<>(DEFAULT_SIZE);
 
-		orderPreservingVariables = new HashMap<String, Long>( DEFAULT_SIZE );
+		orderPreservingVariables = new HashMap<String, Long>(DEFAULT_SIZE);
 
-		sumVariables = new HashMap<String, BigInteger>( DEFAULT_SIZE );
+		sumVariables = new HashMap<String, BigInteger>(DEFAULT_SIZE);
 
 		admins = Cryptography.loadKeys(ADMINS_DIRECTORY, "publicKey");
 
-		secureModule = new SecureModuleRESTClient("https://localhost:8040/"); // TODO: onde ir buscar o endereço?
+		secureModule = new SecureModuleRESTClient(
+				((String[]) IO.loadObject("./secure_module.json", String[].class))[0]);
 	}
 
 	private double createMoney(String who, double amount) {
@@ -133,31 +136,37 @@ public class SimpleWallet implements Wallet {
 
 	@Override
 	public boolean putOrderPreservingInt(String id, long n) {
-		//return orderPreservingVariables.putIfAbsent(id, n) == null;
+		// return orderPreservingVariables.putIfAbsent(id, n) == null;
 		return orderPreservingVariables.put(id, n) == null;
 	}
 
 	@Override
-	public long getOrderPreservingInt(String id) {
-		// TODO: o que fazer quando não existe? Excepção?
+	public long getOrderPreservingInt(String id) throws InvalidAddressException {
+
 		Long n = orderPreservingVariables.get(id);
-		if( n != null ) {
+		if (n != null) {
 			return n;
 		} else {
-			return 0L;
+			throw new InvalidAddressException(id + " is not registered!");
 		}
 	}
 
 	@Override
-	public List<Entry<String, Long>> getBetween(String k1, String k2) {
+	public List<Entry<String, Long>> getBetween(String k1, String k2) throws InvalidAddressException {
 		List<Entry<String, Long>> result = new LinkedList<>();
 
-		// TODO: O que fazer quando um dos extremos não existe?
 		Long v1 = orderPreservingVariables.get(k1);
 		Long v2 = orderPreservingVariables.get(k2);
 
-		for(Entry<String, Long> e : orderPreservingVariables.entrySet()) {
-			if( v1 <= e.getValue() && e.getValue() <= v2) {
+		if (v1 == null) {
+			throw new InvalidAddressException(v1 + " is not registered!");
+		}
+		if (v2 == null) {
+			throw new InvalidAddressException(v2 + " is not registered!");
+		}
+
+		for (Entry<String, Long> e : orderPreservingVariables.entrySet()) {
+			if (v1 <= e.getValue() && e.getValue() <= v2) {
 				result.add(e);
 			}
 		}
@@ -167,40 +176,41 @@ public class SimpleWallet implements Wallet {
 
 	@Override
 	public boolean putSumInt(String id, BigInteger n) {
-		//return sumVariables.putIfAbsent(id, n) == null;
+		// return sumVariables.putIfAbsent(id, n) == null;
 		return sumVariables.put(id, n) == null;
 	}
 
 	@Override
-	public BigInteger getSumInt(String id) {
-		// TODO: o que fazer quando não existe? Excepção?
+	public BigInteger getSumInt(String id) throws InvalidAddressException {
+
 		BigInteger n = sumVariables.get(id);
-		if( n != null ) {
+		if (n != null) {
 			return n;
 		} else {
-			return BigInteger.ZERO;
+			throw new InvalidAddressException(id + " is not registered!");
 		}
 	}
 
 	@Override
-	public BigInteger add(String key, BigInteger amount, BigInteger nSquare) {
+	public BigInteger add(String key, BigInteger amount, BigInteger nSquare) throws InvalidAddressException {
 		BigInteger value = HomoAdd.sum(getSumInt(key), amount, nSquare);
 		sumVariables.put(key, value);
 		return value;
 	}
 
 	@Override
-	public BigInteger sub(String key, BigInteger amount, BigInteger nSquare) {
+	public BigInteger sub(String key, BigInteger amount, BigInteger nSquare) throws InvalidAddressException {
 		BigInteger value = HomoAdd.dif(getSumInt(key), amount, nSquare);
 		sumVariables.put(key, value);
 		return value;
 	}
 
-	private int compare(String cond_key, String cond_key_type, String cond_val, String cipheredKey) {
+	private int compare(String cond_key, String cond_key_type, String cond_val, String cipheredKey)
+			throws InvalidAddressException, InvalidTypeException {
 		BigInteger c_val = new BigInteger(cond_val);
 		BigInteger aux;
 
-		switch(cond_key_type) {
+		switch (cond_key_type) {
 		case "wallet":
 			aux = new BigInteger("" + (int) balance(cond_key));
 			return aux.compareTo(c_val);
@@ -210,16 +220,16 @@ public class SimpleWallet implements Wallet {
 		case "SumInt":
 			BigInteger v1 = getSumInt(cond_key);
 			return secureModule.compareSumInt(v1, c_val, cipheredKey);
+		default:
+			throw new InvalidTypeException(cond_key_type + " is not a valid type!");
 		}
-
-		return 0; // TODO: O que devolver? Execepção?
 	}
 
-	private void set(String upd_key, String upd_key_type, String upd_val) {
+	private void set(String upd_key, String upd_key_type, String upd_val) throws InvalidTypeException {
 
-		switch(upd_key_type) {
+		switch (upd_key_type) {
 		case "wallet":
-			double temp1 = (double)Integer.parseInt(upd_val);
+			double temp1 = (double) Integer.parseInt(upd_val);
 			accounts.put(upd_key, temp1);
 			break;
 		case "OPI":
@@ -231,15 +241,16 @@ public class SimpleWallet implements Wallet {
 			putSumInt(upd_key, temp3);
 			break;
 		default:
-			// TODO: O que fazer? Excepção?
+			throw new InvalidTypeException(upd_key_type + " is not a valid type!");
 		}
 	}
 
-	private void add(String upd_key, String upd_key_type, String upd_val, String upd_auxArg) {
+	private void add(String upd_key, String upd_key_type, String upd_val, String upd_auxArg)
+			throws InvalidAddressException, InvalidTypeException {
 
-		switch(upd_key_type) {
+		switch (upd_key_type) {
 		case "wallet":
-			double v1 = (double)Integer.parseInt(upd_val);
+			double v1 = (double) Integer.parseInt(upd_val);
 			double v2 = balance(upd_key);
 			accounts.put(upd_key, v1 + v2);
 			break;
@@ -256,15 +267,16 @@ public class SimpleWallet implements Wallet {
 			add(upd_key, amount2, nSquare);
 			break;
 		default:
-			// TODO: O que fazer? Excepção?
+			throw new InvalidTypeException(upd_key_type + " is not a valid type!");
 		}
 
 	}
 
 	@Override
-	public boolean cond_set(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey, String upd_key, String upd_key_type, String upd_val) {
+	public boolean cond_set(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey,
+			String upd_key, String upd_key_type, String upd_val) throws InvalidAddressException, InvalidTypeException {
 
-		if(compare(cond_key, cond_key_type, cond_val, cond_cipheredKey) >= 0) {
+		if (compare(cond_key, cond_key_type, cond_val, cond_cipheredKey) >= 0) {
 			set(upd_key, upd_key_type, upd_val);
 			return true;
 		}
@@ -273,9 +285,11 @@ public class SimpleWallet implements Wallet {
 	}
 
 	@Override
-	public boolean cond_add(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey, String upd_key, String upd_key_type, String upd_val, String upd_auxArg) {
+	public boolean cond_add(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey,
+			String upd_key, String upd_key_type, String upd_val, String upd_auxArg)
+			throws InvalidAddressException, InvalidTypeException {
 
-		if(compare(cond_key, cond_key_type, cond_val, cond_cipheredKey) >= 0) {
+		if (compare(cond_key, cond_key_type, cond_val, cond_cipheredKey) >= 0) {
 			add(upd_key, upd_key_type, upd_val, upd_auxArg);
 			return true;
 		}

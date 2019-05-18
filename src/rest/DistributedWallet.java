@@ -96,4 +96,19 @@ public interface DistributedWallet {
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	byte[] sub(String request);
 	
+	static final String COND_SET_PATH = "/cond_set/";
+	@POST
+	@Path(COND_SET_PATH)
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_OCTET_STREAM)
+	byte[] cond_set(String request);
+	
+	static final String COND_ADD_PATH = "/cond_add/";
+	@POST
+	@Path(COND_ADD_PATH)
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_OCTET_STREAM)
+	byte[] cond_add(String request);
+	
+	
 }

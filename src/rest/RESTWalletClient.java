@@ -27,6 +27,8 @@ import bft.reply.InvalidRepliesException;
 import rest.entities.AddRequest;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
+import rest.entities.CondAddRequest;
+import rest.entities.CondSetRequest;
 import rest.entities.GetBetweenOrderPreservingRequest;
 import rest.entities.GetOrderPreservingRequest;
 import rest.entities.GetSumRequest;
@@ -371,6 +373,46 @@ public class RESTWalletClient implements Wallet {
 		});
 		
 		return (BigInteger) reply.getContent();
+	}
+
+	@Override
+	public boolean cond_set(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey,
+			String upd_key, String upd_key_type, String upd_val) {
+		
+		CondSetRequest request = new CondSetRequest(cond_key, cond_key_type, cond_val, cond_cipheredKey, upd_key, upd_key_type, upd_val);
+		
+		BFTReply reply = processRequest((location) -> {
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.COND_SET_PATH).request()
+					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
+			
+			if (response.getStatus() == 200) {
+				byte[] result = (byte[]) response.readEntity(byte[].class);
+				return BFTReply.processReply(result, request.getHash());
+			} else
+				throw new RuntimeException("WalletClient cond_set: " + response.getStatus());
+		});
+		
+		return (Boolean) reply.getContent();
+	}
+
+	@Override
+	public boolean cond_add(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey,
+			String upd_key, String upd_key_type, String upd_val, String upd_auxArg) {
+		
+		CondAddRequest request = new CondAddRequest(cond_key, cond_key_type, cond_val, cond_cipheredKey, upd_key, upd_key_type, upd_val, upd_auxArg);
+		
+		BFTReply reply = processRequest((location) -> {
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.COND_ADD_PATH).request()
+					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
+			
+			if (response.getStatus() == 200) {
+				byte[] result = (byte[]) response.readEntity(byte[].class);
+				return BFTReply.processReply(result, request.getHash());
+			} else
+				throw new RuntimeException("WalletClient cond_add: " + response.getStatus());
+		});
+		
+		return (Boolean) reply.getContent();
 	}
 
 }

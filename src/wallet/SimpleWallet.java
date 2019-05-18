@@ -216,7 +216,7 @@ public class SimpleWallet implements Wallet {
 	}
 
 	private void set(String upd_key, String upd_key_type, String upd_val) {
-		
+
 		switch(upd_key_type) {
 		case "wallet":
 			double temp1 = (double)Integer.parseInt(upd_val);
@@ -236,7 +236,7 @@ public class SimpleWallet implements Wallet {
 	}
 
 	private void add(String upd_key, String upd_key_type, String upd_val, String upd_auxArg) {
-		
+
 		switch(upd_key_type) {
 		case "wallet":
 			double v1 = (double)Integer.parseInt(upd_val);
@@ -252,12 +252,13 @@ public class SimpleWallet implements Wallet {
 		case "SumInt":
 			BigInteger amount2 = new BigInteger(upd_val);
 			BigInteger nSquare = new BigInteger(upd_auxArg);
+
 			add(upd_key, amount2, nSquare);
 			break;
 		default:
 			// TODO: O que fazer? Excepção?
 		}
-		
+
 	}
 
 	@Override

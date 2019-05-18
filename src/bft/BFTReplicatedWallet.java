@@ -6,6 +6,8 @@ import rest.DistributedWallet;
 import rest.entities.AddRequest;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
+import rest.entities.CondAddRequest;
+import rest.entities.CondSetRequest;
 import rest.entities.GetBetweenOrderPreservingRequest;
 import rest.entities.GetOrderPreservingRequest;
 import rest.entities.GetSumRequest;
@@ -57,8 +59,8 @@ public class BFTReplicatedWallet implements DistributedWallet {
 	@Override
 	public byte[] ledger(String request) {
 		try {
-		System.out.println(request);
-		return wallet.ledger(new GsonBuilder().create().fromJson(request, LedgerRequest.class).getNonce());
+			System.out.println(request);
+			return wallet.ledger(new GsonBuilder().create().fromJson(request, LedgerRequest.class).getNonce());
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
@@ -105,6 +107,23 @@ public class BFTReplicatedWallet implements DistributedWallet {
 	public byte[] sub(String request) {
 		AddRequest req = new GsonBuilder().create().fromJson(request, AddRequest.class);
 		return wallet.dif(req.id, req.amount, req.nSquare, req.getNonce());
+	}
+
+	@Override
+	public byte[] cond_set(String request) {
+		try {
+			CondSetRequest req = new GsonBuilder().create().fromJson(request, CondSetRequest.class);
+			return wallet.cond_set(req.cond_key, req.cond_key_type, req.cond_val, req.cond_cipheredKey, req.upd_key, req.upd_key_type, req.upd_val, req.getNonce());
+		} catch(Exception e) {
+			e.printStackTrace();
+			return new byte[0];
+		}
+	}
+
+	@Override
+	public byte[] cond_add(String request) {
+		CondAddRequest req = new GsonBuilder().create().fromJson(request, CondAddRequest.class);
+		return wallet.cond_add(req.cond_key, req.cond_key_type, req.cond_val, req.cond_cipheredKey, req.upd_key, req.upd_key_type, req.upd_val, req.upd_auxArg, req.getNonce());
 	}
 
 }

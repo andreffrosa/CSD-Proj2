@@ -23,6 +23,8 @@ import bftsmart.tom.server.defaultservices.DefaultRecoverable;
 import rest.entities.AddRequest;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
+import rest.entities.CondAddRequest;
+import rest.entities.CondSetRequest;
 import rest.entities.GetBetweenOrderPreservingRequest;
 import rest.entities.GetOrderPreservingRequest;
 import rest.entities.GetSumRequest;
@@ -373,6 +375,57 @@ public class BFTWalletServer extends DefaultRecoverable {
 					hasReply = true;
 
 					System.out.println("(" + iterations + ") sub(" + id + ", " + big_amount + ", " + nSquare + ") : " + result);
+				}
+				break;
+			case COND_SET:
+				String cond_key = objIn.readUTF();
+				String cond_key_type = objIn.readUTF();
+				String cond_val = objIn.readUTF();
+				String cond_cipheredKey = objIn.readUTF();
+				String upd_key = objIn.readUTF();
+				String upd_key_type = objIn.readUTF();
+				String upd_val = objIn.readUTF();
+
+				op_hash = CondSetRequest.computeHash(cond_key, cond_key_type, cond_val, cond_cipheredKey, upd_key, upd_key_type, upd_val, nonce);
+				val = chechResults(op_hash);
+				cached = (val != null);
+				if (!cached) {
+
+					Boolean result = wallet.cond_set(cond_key, cond_key_type, cond_val, cond_cipheredKey, upd_key, upd_key_type, upd_val);
+
+					objOut.writeObject(op_hash);
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeObject(result);
+					hasReply = true;
+
+					System.out.println(
+							"(" + iterations + ") cond_set(" + cond_key_type + " " + cond_key + " >= " + cond_val + " (" + cond_cipheredKey + ")" + " then " + upd_key_type + " " + upd_key + " = " + upd_val + ") : " + result);
+				}
+				break;
+			case COND_ADD:
+				cond_key = objIn.readUTF();
+				cond_key_type = objIn.readUTF();
+				cond_val = objIn.readUTF();
+				cond_cipheredKey = objIn.readUTF();
+				upd_key = objIn.readUTF();
+				upd_key_type = objIn.readUTF();
+				upd_val = objIn.readUTF();
+				String upd_auxArg = objIn.readUTF();
+
+				op_hash = CondAddRequest.computeHash(cond_key, cond_key_type, cond_val, cond_cipheredKey, upd_key, upd_key_type, upd_val, upd_auxArg, nonce);
+				val = chechResults(op_hash);
+				cached = (val != null);
+				if (!cached) {
+
+					Boolean result = wallet.cond_add(cond_key, cond_key_type, cond_val, cond_cipheredKey, upd_key, upd_key_type, upd_val, upd_auxArg);
+
+					objOut.writeObject(op_hash);
+					objOut.writeObject(BFTWalletResultType.OK);
+					objOut.writeObject(result);
+					hasReply = true;
+
+					System.out.println(
+							"(" + iterations + ") cond_add(" + cond_key_type + " " + cond_key + " >= " + cond_val + " (" + cond_cipheredKey + ")" + " then " + upd_key_type + " " + upd_key + " = " + upd_val + " (" + upd_auxArg + ") " + ") : " + result);
 				}
 				break;
 			}

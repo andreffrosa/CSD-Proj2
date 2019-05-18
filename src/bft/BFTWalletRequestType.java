@@ -13,6 +13,8 @@ public enum  BFTWalletRequestType {
 	PUT_SUM,
 	GET_SUM,
 	ADD,
-	DIF
+	DIF,
+	COND_SET,
+	COND_ADD
 
 }

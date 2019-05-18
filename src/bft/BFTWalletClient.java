@@ -217,7 +217,7 @@ public class BFTWalletClient {
 			
 			return reply;
 		} catch (IOException e) {
-			throw new RuntimeException("Exception putting add: " + e.getMessage());
+			throw new RuntimeException("Exception add: " + e.getMessage());
 		}
 	}
 	
@@ -238,7 +238,58 @@ public class BFTWalletClient {
 			
 			return reply;
 		} catch (IOException e) {
-			throw new RuntimeException("Exception putting add: " + e.getMessage());
+			throw new RuntimeException("Exception diff: " + e.getMessage());
+		}
+	}
+	
+	public byte[] cond_set(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey, String upd_key, String upd_key_type, String upd_val, long nonce) {
+		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
+
+			objOut.writeObject(BFTWalletRequestType.COND_SET);
+			objOut.writeLong(nonce);
+			objOut.writeUTF(cond_key);
+			objOut.writeUTF(cond_key_type);
+			objOut.writeUTF(cond_val);
+			objOut.writeUTF(cond_cipheredKey);
+			objOut.writeUTF(upd_key);
+			objOut.writeUTF(upd_key_type);
+			objOut.writeUTF(upd_val);
+
+			objOut.flush();
+			byteOut.flush();
+
+			byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
+			
+			return reply;
+		} catch (IOException e) {
+			throw new RuntimeException("Exception cond_set: " + e.getMessage());
+		}
+	}
+	
+	public byte[] cond_add(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey, String upd_key, String upd_key_type, String upd_val, String upd_auxArg, long nonce) {
+		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
+
+			objOut.writeObject(BFTWalletRequestType.COND_ADD);
+			objOut.writeLong(nonce);
+			objOut.writeUTF(cond_key);
+			objOut.writeUTF(cond_key_type);
+			objOut.writeUTF(cond_val);
+			objOut.writeUTF(cond_cipheredKey);
+			objOut.writeUTF(upd_key);
+			objOut.writeUTF(upd_key_type);
+			objOut.writeUTF(upd_val);
+			objOut.writeUTF(upd_auxArg);
+
+			objOut.flush();
+			byteOut.flush();
+
+			byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
+			
+			return reply;
+		} catch (IOException e) {
+			throw new RuntimeException("Exception cond_add: " + e.getMessage());
 		}
 	}
 	

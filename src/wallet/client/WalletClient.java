@@ -1,5 +1,6 @@
 package wallet.client;
 
+import java.math.BigInteger;
 import java.security.KeyPair;
 import java.util.AbstractMap;
 import java.util.HashMap;
@@ -8,13 +9,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.crypto.SecretKey;
+
+import hlib.hj.mlib.HomoAdd;
+import hlib.hj.mlib.HomoOpeInt;
+import hlib.hj.mlib.PaillierKey;
 import rest.RESTWalletClient;
+import secureModule.SecureModuleImpl;
+import utils.Bytes;
 import utils.Cryptography;
 import wallet.Transaction;
 import wallet.Wallet;
 import wallet.exceptions.InvalidAddressException;
 import wallet.exceptions.InvalidAmountException;
 import wallet.exceptions.InvalidSignatureException;
+import wallet.exceptions.InvalidTypeException;
 import wallet.exceptions.NotEnoughMoneyException;
 
 /**
@@ -24,15 +33,25 @@ import wallet.exceptions.NotEnoughMoneyException;
 
 public class WalletClient {
 
+	private static final int DEFAULT_SIZE = 10;
+
 	private Map<String, String> to_receive_addresses; // PK -> (SK, €)
 	private Map<String, Entry<String, Double>> used_addresses; // PK -> (SK, €)
 
+	private Map<String, Long> opi_variables; // id -> key
+	private Map<String, PaillierKey> sumInt_variables; // id -> key
+
 	private Wallet wallet;
+	
+	private SecretKey secureModule_ks = Cryptography.parseSecretKey(Cryptography.loadKeys("./keys/secureModuleServer/", "secretKey").get(0), null, SecureModuleImpl.CIPHER_ALGORITHM);
 
 	// Constructor
 	public WalletClient(String[] servers) {
-		to_receive_addresses = new HashMap<>();
-		used_addresses = new HashMap<>();
+		to_receive_addresses = new HashMap<>(DEFAULT_SIZE);
+		used_addresses = new HashMap<>(DEFAULT_SIZE);
+
+		opi_variables = new HashMap<>(DEFAULT_SIZE);
+		sumInt_variables = new HashMap<>(DEFAULT_SIZE);
 
 		wallet = new RESTWalletClient(servers);
 	}
@@ -179,4 +198,177 @@ public class WalletClient {
 		return used_address;
 	}
 
+	public boolean createVariable(String type, String id, int value) throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
+
+		boolean result = false;
+		if(type.equals("SumInt")) {
+			PaillierKey pk = HomoAdd.generateKey();
+
+			sumInt_variables.put(id, pk);
+
+			BigInteger big1 = new BigInteger("" + value);
+			BigInteger big1Code;
+			try {
+				big1Code = HomoAdd.encrypt(big1, pk);
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+			result = wallet.putSumInt(id, big1Code);
+		} else if(type.equals("OPI")) {
+			long key = HomoOpeInt.generateKey();
+			HomoOpeInt ope = new HomoOpeInt(key);
+
+			opi_variables.put(id, key);
+
+			long opi = ope.encrypt(value);
+			result = wallet.putOrderPreservingInt(id, opi);
+		} else if(type.equals("wallet")) {
+			result = transfer(id, value);
+		}
+
+		return result;
+	}
+
+	public int getVariable(String type, String id) throws InvalidAddressException {
+		int result = -1;
+
+		if(type.equals("SumInt")) {
+			PaillierKey pk = sumInt_variables.get(id);
+
+			if(pk == null) {
+				throw new InvalidAddressException(id + " is an invalid address!");
+			}
+
+			BigInteger encrypted_result = wallet.getSumInt(id);
+
+			try {
+				result = HomoAdd.decrypt(encrypted_result, pk).intValue();
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		} else if(type.equals("OPI")) {
+			Long key = opi_variables.get(id);
+
+			if(key == null) {
+				throw new InvalidAddressException(id + " is an invalid address!");
+			}
+
+			HomoOpeInt ope = new HomoOpeInt(key);
+
+			long encrypted_result= wallet.getOrderPreservingInt(id);
+
+			result = ope.decrypt(encrypted_result);
+		} else if(type.equals("wallet")) {
+			result = (int) wallet.balance(id);
+		}
+
+		return result;
+	}
+
+	public boolean cond_set(String cond_key_type, String cond_key, int cond_value, String upd_key_type, String upd_key, int upd_value) throws InvalidAddressException, InvalidTypeException {
+
+		String cipheredKey = encryptKey(cond_key_type, cond_key);
+
+		String encrypted_cond_value = encryptValue(cond_key_type, cond_key, cond_value);
+		
+		String encrypted_upd_value = encryptValue(upd_key_type, upd_key, upd_value);
+
+		return wallet.cond_set(cond_key, cond_key_type, encrypted_cond_value, cipheredKey, upd_key, upd_key_type, encrypted_upd_value);
+	}
+	
+	public boolean cond_add(String cond_key_type, String cond_key, int cond_value, String upd_key_type, String upd_key, int upd_value) throws InvalidAddressException, InvalidTypeException {
+
+		String cond_cipheredKey = encryptKey(cond_key_type, cond_key);
+
+		String encrypted_cond_value = encryptValue(cond_key_type, cond_key, cond_value);
+		String encrypted_upd_value = encryptValue(upd_key_type, upd_key, upd_value);
+
+		String upd_auxArg = getAddAuxArg(upd_key_type, upd_key);
+
+		return wallet.cond_add(cond_key, cond_key_type, encrypted_cond_value, cond_cipheredKey, upd_key, upd_key_type, encrypted_upd_value, upd_auxArg);
+	}
+	
+	private String getAddAuxArg(String key_type, String key) throws InvalidAddressException {
+		
+		String arg = "";
+		
+		if(key_type.equals("SumInt")) {
+			PaillierKey pk = sumInt_variables.get(key);
+
+			if(pk == null) {
+				throw new InvalidAddressException(key + " is an invalid address!");
+			}
+			
+			arg = "" + pk.getNsquare();
+		} else if(key_type.equals("OPI")) {
+			arg = encryptKey(key_type, key);
+		} else if(key_type.equals("wallet")) {
+			arg = "";
+		}
+		
+		return arg;
+	}
+	
+	private String encryptKey(String key_type, String key) throws InvalidAddressException {
+		String encrypted_key = "";
+		
+		if(key_type.equals("SumInt")) {
+			PaillierKey pk = sumInt_variables.get(key);
+
+			if(pk == null) {
+				throw new InvalidAddressException(key + " is an invalid address!");
+			}
+			
+			byte[] rawCipheredKey = Cryptography.encrypt(secureModule_ks, HomoAdd.stringFromKey(pk).getBytes(), SecureModuleImpl.CIPHER_ALGORITHM);
+			encrypted_key = java.util.Base64.getEncoder().encodeToString(rawCipheredKey);
+		} else if(key_type.equals("OPI")) {
+			Long opi_key = opi_variables.get(key);
+
+			if(opi_key == null) {
+				throw new InvalidAddressException(key + " is an invalid address!");
+			}
+
+			byte[] rawCipheredKey = Cryptography.encrypt(secureModule_ks, Bytes.toBytes(opi_key), SecureModuleImpl.CIPHER_ALGORITHM);
+			encrypted_key = java.util.Base64.getEncoder().encodeToString(rawCipheredKey);
+		} else if(key_type.equals("wallet")) {
+			encrypted_key = "";
+		}
+		
+		return encrypted_key;
+	}
+	
+	private String encryptValue(String key_type, String key, int value) throws InvalidAddressException {
+		String encrypted_value = "";
+		
+		if(key_type.equals("SumInt")) {
+			PaillierKey pk = sumInt_variables.get(key);
+
+			if(pk == null) {
+				throw new InvalidAddressException(key + " is an invalid address!");
+			}
+			
+			try {
+				encrypted_value = HomoAdd.encrypt(new BigInteger("" + value), pk).toString();
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+		} else if(key_type.equals("OPI")) {
+			Long opi_key = opi_variables.get(key);
+
+			if(opi_key == null) {
+				throw new InvalidAddressException(key + " is an invalid address!");
+			}
+
+			HomoOpeInt ope = new HomoOpeInt(opi_key);
+
+			encrypted_value = "" + ope.encrypt(value);
+		} else if(key_type.equals("wallet")) {
+			encrypted_value = "" + value;
+		}
+		
+		return encrypted_value;
+	}
+
+	// TODO: falta fazer add e compare
+	
 }

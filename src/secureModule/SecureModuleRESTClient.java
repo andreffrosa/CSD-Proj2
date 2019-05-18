@@ -65,7 +65,7 @@ public class SecureModuleRESTClient {
 			throw new RuntimeException("Aborted request! Too many tries...");
 		}
 	
-	public long addOPI(long opi, int amount, String cipheredKey) {
+	public long addOPI(long opi, long amount, String cipheredKey) {
 		
 		String request = new GsonBuilder().create().toJson(new AddRequest(opi, amount, cipheredKey));
 		

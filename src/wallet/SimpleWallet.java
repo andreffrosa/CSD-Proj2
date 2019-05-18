@@ -201,8 +201,8 @@ public class SimpleWallet implements Wallet {
 		BigInteger aux;
 
 		switch(cond_key_type) {
-		case "plainText":
-			aux = new BigInteger("" + balance(cond_key));
+		case "wallet":
+			aux = new BigInteger("" + (int) balance(cond_key));
 			return aux.compareTo(c_val);
 		case "OPI":
 			aux = new BigInteger("" + getOrderPreservingInt(cond_key));
@@ -218,7 +218,7 @@ public class SimpleWallet implements Wallet {
 	private void set(String upd_key, String upd_key_type, String upd_val) {
 		
 		switch(upd_key_type) {
-		case "plainText":
+		case "wallet":
 			double temp1 = (double)Integer.parseInt(upd_val);
 			accounts.put(upd_key, temp1);
 			break;
@@ -238,13 +238,13 @@ public class SimpleWallet implements Wallet {
 	private void add(String upd_key, String upd_key_type, String upd_val, String upd_auxArg) {
 		
 		switch(upd_key_type) {
-		case "plainText":
+		case "wallet":
 			double v1 = (double)Integer.parseInt(upd_val);
 			double v2 = balance(upd_key);
 			accounts.put(upd_key, v1 + v2);
 			break;
 		case "OPI":
-			int amount = Integer.parseInt(upd_val);
+			long amount = Long.parseLong(upd_val);
 			long l = getOrderPreservingInt(upd_key);
 			long result = secureModule.addOPI(l, amount, upd_auxArg);
 			putOrderPreservingInt(upd_key, result);

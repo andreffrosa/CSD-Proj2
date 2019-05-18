@@ -26,7 +26,7 @@ public class SecureModuleImpl implements SecureModule {
 		try {
 		AddRequest request = new GsonBuilder().create().fromJson(req, AddRequest.class);
 		long opi = request.opi;
-		int amount = request.amount;
+		long amount = request.amount;
 		String cipheredKey = request.cipheredKey;
 		
 		// Decrypt key
@@ -36,9 +36,10 @@ public class SecureModuleImpl implements SecureModule {
 		// Decrypt opi
 		HomoOpeInt ope = new HomoOpeInt(key);
 		int value = ope.decrypt(opi);
+		int raw_amount = ope.decrypt(amount);
 
 		// Sum
-		value += amount;
+		value += raw_amount;
 
 		// Encrypt opi
 		long new_opi = ope.encrypt(value);

@@ -12,9 +12,11 @@ public enum  BFTWalletRequestType {
 	GET_BETWEEN_OPI,
 	PUT_SUM,
 	GET_SUM,
-	ADD,
+	ADD_SUM,
 	DIF,
 	COND_SET,
-	COND_ADD
+	COND_ADD,
+	COMPARE,
+	ADD
 
 }

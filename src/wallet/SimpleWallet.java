@@ -192,7 +192,7 @@ public class SimpleWallet implements Wallet {
 	}
 
 	@Override
-	public BigInteger add(String key, BigInteger amount, BigInteger nSquare) throws InvalidAddressException {
+	public BigInteger add_sumInt(String key, BigInteger amount, BigInteger nSquare) throws InvalidAddressException {
 		BigInteger value = HomoAdd.sum(getSumInt(key), amount, nSquare);
 		sumVariables.put(key, value);
 		return value;
@@ -205,7 +205,8 @@ public class SimpleWallet implements Wallet {
 		return value;
 	}
 
-	private int compare(String cond_key, String cond_key_type, String cond_val, String cipheredKey)
+	@Override
+	public int compare(String cond_key, String cond_key_type, String cond_val, String cipheredKey)
 			throws InvalidAddressException, InvalidTypeException {
 		BigInteger c_val = new BigInteger(cond_val);
 		BigInteger aux;
@@ -245,31 +246,42 @@ public class SimpleWallet implements Wallet {
 		}
 	}
 
-	private void add(String upd_key, String upd_key_type, String upd_val, String upd_auxArg)
+	@Override
+	public String add(String upd_key, String upd_key_type, String upd_val, String upd_auxArg)
 			throws InvalidAddressException, InvalidTypeException {
 
+		String result = "";
+		
 		switch (upd_key_type) {
 		case "wallet":
 			double v1 = (double) Integer.parseInt(upd_val);
 			double v2 = balance(upd_key);
+			
 			accounts.put(upd_key, v1 + v2);
+			
+			result = "" + v1 + v2;
 			break;
 		case "OPI":
 			long amount = Long.parseLong(upd_val);
 			long l = getOrderPreservingInt(upd_key);
-			long result = secureModule.addOPI(l, amount, upd_auxArg);
-			putOrderPreservingInt(upd_key, result);
+			long value = secureModule.addOPI(l, amount, upd_auxArg);
+			putOrderPreservingInt(upd_key, value);
+			
+			result = "" + value;
 			break;
 		case "SumInt":
 			BigInteger amount2 = new BigInteger(upd_val);
 			BigInteger nSquare = new BigInteger(upd_auxArg);
 
-			add(upd_key, amount2, nSquare);
+			BigInteger big = add_sumInt(upd_key, amount2, nSquare);
+			
+			result = big.toString();
 			break;
 		default:
 			throw new InvalidTypeException(upd_key_type + " is not a valid type!");
 		}
-
+		
+		return result;
 	}
 
 	@Override

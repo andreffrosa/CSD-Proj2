@@ -1,7 +1,5 @@
 package rest.entities;
 
-import java.math.BigInteger;
-
 import utils.Cryptography;
 
 public class CondAddRequest extends AbstractRestRequest {
@@ -26,7 +24,7 @@ public class CondAddRequest extends AbstractRestRequest {
 		init(cond_key, cond_key_type, cond_val, cond_cipheredKey, upd_key, upd_key_type, upd_val, upd_auxArg);
 	}
 
-	public CondAddRequest(String id, BigInteger amount, BigInteger nSquare, long nonce) {
+	public CondAddRequest(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey, String upd_key, String upd_key_type, String upd_val, String upd_auxArg, long nonce) {
 		super(nonce);
 		init(cond_key, cond_key_type, cond_val, cond_cipheredKey, upd_key, upd_key_type, upd_val, upd_auxArg);
 	}

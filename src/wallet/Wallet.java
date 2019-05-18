@@ -73,13 +73,27 @@ public interface Wallet {
 	 * @throws InvalidAddressException 
 	 * 
 	 * */
-	BigInteger add(String key, BigInteger amount, BigInteger nSquare) throws InvalidAddressException;
+	BigInteger add_sumInt(String key, BigInteger amount, BigInteger nSquare) throws InvalidAddressException;
 	
 	/**
 	 * @throws InvalidAddressException 
 	 * 
 	 * */
 	BigInteger sub(String key, BigInteger amount, BigInteger nSquare) throws InvalidAddressException;
+	
+	/**
+	 * @throws InvalidAddressException 
+	 * @throws InvalidTypeException 
+	 * 
+	 * */
+	String add(String key_type, String key, String amount, String arg) throws InvalidAddressException, InvalidTypeException;
+	
+	/**
+	 * @throws InvalidAddressException 
+	 * @throws InvalidTypeException 
+	 * 
+	 * */
+	int compare(String key_type, String key, String value, String cipheredKey) throws InvalidAddressException, InvalidTypeException;
 	
 	/**
 	 * @throws InvalidTypeException 

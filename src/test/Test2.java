@@ -67,7 +67,7 @@ public class Test2 {
 
 			System.out.println("Add and Sub");
 
-			BigInteger result = wallet.add("SUM-"+1, BigInteger.ONE, pk.getNsquare());
+			BigInteger result = wallet.add_sumInt("SUM-"+1, BigInteger.ONE, pk.getNsquare());
 			System.out.println(HomoAdd.decrypt(result, pk));
 			result = wallet.sub("SUM-"+2, BigInteger.ONE, pk.getNsquare());
 			System.out.println(HomoAdd.decrypt(result, pk));

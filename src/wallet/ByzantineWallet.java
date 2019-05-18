@@ -10,6 +10,7 @@ import java.util.Map.Entry;
 import wallet.exceptions.InvalidAddressException;
 import wallet.exceptions.InvalidAmountException;
 import wallet.exceptions.InvalidSignatureException;
+import wallet.exceptions.InvalidTypeException;
 import wallet.exceptions.NotEnoughMoneyException;
 
 public class ByzantineWallet implements Wallet {
@@ -46,7 +47,7 @@ public class ByzantineWallet implements Wallet {
 
 	@Override
 	public long getOrderPreservingInt(String id) {
-		return (long) Math.random()*Long.MAX_VALUE;
+		return (long) Math.random() * Long.MAX_VALUE;
 	}
 
 	@Override
@@ -65,7 +66,7 @@ public class ByzantineWallet implements Wallet {
 	}
 
 	@Override
-	public BigInteger add(String key, BigInteger amount, BigInteger nSquare) {
+	public BigInteger add_sumInt(String key, BigInteger amount, BigInteger nSquare) {
 		return BigInteger.ZERO;
 	}
 
@@ -84,6 +85,18 @@ public class ByzantineWallet implements Wallet {
 	public boolean cond_add(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey,
 			String upd_key, String upd_key_type, String upd_val, String upd_auxArg) {
 		return Math.random() > 0.5;
+	}
+
+	@Override
+	public String add(String key_type, String key, String amount, String arg)
+			throws InvalidAddressException, InvalidTypeException {
+		return "" + ((int) Math.random() * Integer.MAX_VALUE);
+	}
+
+	@Override
+	public int compare(String key_type, String key, String value, String cipheredKey)
+			throws InvalidAddressException, InvalidTypeException {
+		return Integer.compare((int) Math.random() * Integer.MAX_VALUE, (int) Math.random() * Integer.MAX_VALUE);
 	}
 
 }

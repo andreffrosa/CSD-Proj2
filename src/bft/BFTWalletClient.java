@@ -204,7 +204,7 @@ public class BFTWalletClient {
 		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
 
-			objOut.writeObject(BFTWalletRequestType.ADD);
+			objOut.writeObject(BFTWalletRequestType.ADD_SUM);
 			objOut.writeLong(nonce);
 			objOut.writeUTF(id);
 			objOut.writeObject(amount);
@@ -290,6 +290,50 @@ public class BFTWalletClient {
 			return reply;
 		} catch (IOException e) {
 			throw new RuntimeException("Exception cond_add: " + e.getMessage());
+		}
+	}
+	
+	public byte[] add(String key, String key_type, String val, String auxArg, long nonce) {
+		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
+
+			objOut.writeObject(BFTWalletRequestType.ADD);
+			objOut.writeLong(nonce);
+			objOut.writeUTF(key);
+			objOut.writeUTF(key_type);
+			objOut.writeUTF(val);
+			objOut.writeUTF(auxArg);
+
+			objOut.flush();
+			byteOut.flush();
+
+			byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
+			
+			return reply;
+		} catch (IOException e) {
+			throw new RuntimeException("Exception add: " + e.getMessage());
+		}
+	}
+	
+	public byte[] compare(String key, String key_type, String val, String cipheredKey, long nonce) {
+		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
+
+			objOut.writeObject(BFTWalletRequestType.COMPARE);
+			objOut.writeLong(nonce);
+			objOut.writeUTF(key);
+			objOut.writeUTF(key_type);
+			objOut.writeUTF(val);
+			objOut.writeUTF(cipheredKey);
+
+			objOut.flush();
+			byteOut.flush();
+
+			byte[] reply = serviceProxy.invokeUnordered(byteOut.toByteArray());
+			
+			return reply;
+		} catch (IOException e) {
+			throw new RuntimeException("Exception compare: " + e.getMessage());
 		}
 	}
 	

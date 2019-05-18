@@ -82,12 +82,12 @@ public interface DistributedWallet {
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	byte[] getSumInt(String request);
 	
-	static final String ADD_PATH = "/add/";
+	static final String ADD_SUMINT_PATH = "/addSumInt/";
 	@POST
-	@Path(ADD_PATH)
+	@Path(ADD_SUMINT_PATH)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] add(String request);
+	byte[] add_sumInt(String request);
 	
 	static final String DIF_PATH = "/dif/";
 	@POST
@@ -110,5 +110,18 @@ public interface DistributedWallet {
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	byte[] cond_add(String request);
 	
+	static final String ADD_PATH = "/add/";
+	@POST
+	@Path(ADD_PATH)
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_OCTET_STREAM)
+	byte[] add(String request);
+	
+	static final String COMPARE_PATH = "/compare/";
+	@POST
+	@Path(COMPARE_PATH)
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_OCTET_STREAM)
+	byte[] compare(String request);
 	
 }

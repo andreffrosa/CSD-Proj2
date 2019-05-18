@@ -25,8 +25,10 @@ import com.google.gson.GsonBuilder;
 import bft.reply.BFTReply;
 import bft.reply.InvalidRepliesException;
 import rest.entities.AddRequest;
+import rest.entities.AddSumRequest;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
+import rest.entities.CompareRequest;
 import rest.entities.CondAddRequest;
 import rest.entities.CondSetRequest;
 import rest.entities.GetBetweenOrderPreservingRequest;
@@ -379,11 +381,11 @@ public class RESTWalletClient implements Wallet {
 	}
 
 	@Override
-	public BigInteger add(String key, BigInteger amount, BigInteger nSquare) throws InvalidAddressException {
-		AddRequest request = new AddRequest(key, amount, nSquare);
+	public BigInteger add_sumInt(String key, BigInteger amount, BigInteger nSquare) throws InvalidAddressException {
+		AddSumRequest request = new AddSumRequest(key, amount, nSquare);
 
 		BFTReply reply = processRequest((location) -> {
-			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.ADD_PATH)
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.ADD_SUMINT_PATH)
 					.request()
 					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
 
@@ -410,7 +412,7 @@ public class RESTWalletClient implements Wallet {
 
 	@Override
 	public BigInteger sub(String key, BigInteger amount, BigInteger nSquare) throws InvalidAddressException {
-		AddRequest request = new AddRequest(key, amount, nSquare);
+		AddSumRequest request = new AddSumRequest(key, amount, nSquare);
 
 		BFTReply reply = processRequest((location) -> {
 			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.DIF_PATH)
@@ -507,6 +509,74 @@ public class RESTWalletClient implements Wallet {
 		}
 
 		return (Boolean) reply.getContent();
+	}
+
+	@Override
+	public String add(String key_type, String key, String amount, String arg)
+			throws InvalidAddressException, InvalidTypeException {
+		
+		AddRequest request = new AddRequest(key, key_type, amount, arg);
+
+		BFTReply reply = processRequest((location) -> {
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.ADD_PATH)
+					.request()
+					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
+
+			if (response.getStatus() == 200) {
+				byte[] result = (byte[]) response.readEntity(byte[].class);
+				return BFTReply.processReply(result, request.getHash());
+			} else
+				throw new RuntimeException("WalletClient add: " + response.getStatus());
+		});
+
+		if (reply.isException()) {
+			String msg = (String) reply.getContent();
+
+			switch (reply.getResultType()) {
+			case INVALID_ADDRESS:
+				throw new InvalidAddressException(msg);
+			case INVALID_TYPE:
+				throw new InvalidTypeException(msg);
+			default:
+				break;
+			}
+		}
+
+		return (String) reply.getContent();
+	}
+
+	@Override
+	public int compare(String key_type, String key, String value, String cipheredKey)
+			throws InvalidAddressException, InvalidTypeException {
+		
+		CompareRequest request = new CompareRequest(key, key_type, value, cipheredKey);
+
+		BFTReply reply = processRequest((location) -> {
+			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.ADD_PATH)
+					.request()
+					.post(Entity.entity(new GsonBuilder().create().toJson(request), MediaType.APPLICATION_JSON));
+
+			if (response.getStatus() == 200) {
+				byte[] result = (byte[]) response.readEntity(byte[].class);
+				return BFTReply.processReply(result, request.getHash());
+			} else
+				throw new RuntimeException("WalletClient compare: " + response.getStatus());
+		});
+
+		if (reply.isException()) {
+			String msg = (String) reply.getContent();
+
+			switch (reply.getResultType()) {
+			case INVALID_ADDRESS:
+				throw new InvalidAddressException(msg);
+			case INVALID_TYPE:
+				throw new InvalidTypeException(msg);
+			default:
+				break;
+			}
+		}
+
+		return (Integer) reply.getContent();
 	}
 
 }

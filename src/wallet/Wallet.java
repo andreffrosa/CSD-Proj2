@@ -1,12 +1,11 @@
 package wallet;
 
-import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import wallet.exceptions.InvalidAddressException;
 import wallet.exceptions.InvalidAmountException;
+import wallet.exceptions.InvalidOperationException;
 import wallet.exceptions.InvalidSignatureException;
 import wallet.exceptions.InvalidTypeException;
 import wallet.exceptions.NotEnoughMoneyException;
@@ -20,7 +19,7 @@ public interface Wallet {
 	 * @throws InvalidAddressException 
 	 * 
 	 * */
-	boolean transfer( Transaction transaction ) throws InvalidAddressException, InvalidSignatureException, InvalidAmountException, NotEnoughMoneyException;
+	public boolean transfer( Transaction transaction ) throws InvalidAddressException, InvalidSignatureException, InvalidAmountException, NotEnoughMoneyException;
 	
 	/**
 	 * @throws NotEnoughMoneyException 
@@ -29,84 +28,62 @@ public interface Wallet {
 	 * @throws InvalidAddressException 
 	 * 
 	 * */
-	boolean atomicTransfer( List<Transaction> transactions ) throws InvalidAddressException, InvalidSignatureException, InvalidAmountException, NotEnoughMoneyException;
+	public boolean atomicTransfer( List<Transaction> transactions ) throws InvalidAddressException, InvalidSignatureException, InvalidAmountException, NotEnoughMoneyException;
 
 	/**
 	 * 
 	 * */
-	double balance( String who );
+	public double balance( String who );
 	
 	/**
 	 * 
 	 * */
-	Map<String, Double> ledger();
+	public Map<String, Double> ledger();
 
 	/**
 	 * 
 	 * */
-	boolean putOrderPreservingInt(String id, long n);
+	public boolean create(DataType type, String id, String initial_value);
 	
 	/**
 	 * @throws InvalidAddressException 
 	 * 
 	 * */
-	long getOrderPreservingInt(String id) throws InvalidAddressException;
-	
-	/**
-	 * @throws InvalidAddressException 
-	 * 
-	 * */
-	List<Entry<String, Long>> getBetween(String k1, String k2) throws InvalidAddressException;
+	public String get(DataType type, String id) throws InvalidAddressException;
 	
 	/**
 	 * 
 	 * */
-	boolean putSumInt(String id, BigInteger n);
+	List<String> getBetween(List<GetBetweenOP> ops);
 	
 	/**
-	 * @throws InvalidAddressException 
+	 * @throws InvalidTypeException 
 	 * 
 	 * */
-	BigInteger getSumInt(String id) throws InvalidAddressException;
-	
-	/**
-	 * @throws InvalidAddressException 
-	 * 
-	 * */
-	BigInteger add_sumInt(String key, BigInteger amount, BigInteger nSquare) throws InvalidAddressException;
-	
-	/**
-	 * @throws InvalidAddressException 
-	 * 
-	 * */
-	BigInteger sub(String key, BigInteger amount, BigInteger nSquare) throws InvalidAddressException;
+	public boolean set(DataType type, String id, String value) throws InvalidTypeException;
 	
 	/**
 	 * @throws InvalidAddressException 
 	 * @throws InvalidTypeException 
 	 * 
 	 * */
-	String add(String key_type, String key, String amount, String arg) throws InvalidAddressException, InvalidTypeException;
+	String sum(DataType key_type, String key, String amount, String arg) throws InvalidAddressException, InvalidTypeException;
 	
 	/**
 	 * @throws InvalidAddressException 
 	 * @throws InvalidTypeException 
+	 * @throws InvalidOperationException 
 	 * 
 	 * */
-	int compare(String key_type, String key, String value, String cipheredKey) throws InvalidAddressException, InvalidTypeException;
-	
+	public boolean compare(DataType cond_type, String cond_key, ConditionalOperation cond, String cond_val, String cipheredKey)
+			throws InvalidAddressException, InvalidTypeException, InvalidOperationException;
+		
 	/**
 	 * @throws InvalidTypeException 
 	 * @throws InvalidAddressException 
+	 * @throws InvalidOperationException 
 	 * 
 	 * */
-	boolean cond_set(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey, String upd_key, String upd_key_type, String upd_val) throws InvalidAddressException, InvalidTypeException;
-	
-	/**
-	 * @throws InvalidTypeException 
-	 * @throws InvalidAddressException 
-	 * 
-	 * */
-	boolean cond_add(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey, String upd_key, String upd_key_type, String upd_val, String upd_auxArg) throws InvalidAddressException, InvalidTypeException;
+	public boolean cond_upd(DataType cond_type, String cond_id, ConditionalOperation cond, String cond_val, String cond_cipheredKey, List<UpdOp> ops) throws InvalidAddressException, InvalidTypeException, InvalidOperationException;
 	
 }

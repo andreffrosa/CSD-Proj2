@@ -318,7 +318,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 					String result = "";
 					try {
 						objOut.writeObject(op_hash);
-						List<Entry<String, Long>> values = wallet.getBetween(k1, k2);
+						List<Entry<String, Long>> values = wallet.getBetweenKeysOPI(k1, k2);
 
 						result = "OK -> " + values.size();
 
@@ -732,7 +732,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 					String result = "";
 					try {
 						objOut.writeObject(op_hash);
-						List<Entry<String, Long>> values = wallet.getBetween(k1, k2);
+						List<Entry<String, Long>> values = wallet.getBetweenKeysOPI(k1, k2);
 
 						result = "OK -> " + values.size();
 

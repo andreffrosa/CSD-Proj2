@@ -302,7 +302,7 @@ public class RESTWalletClient implements Wallet {
 	}
 
 	@Override
-	public List<Entry<String, Long>> getBetween(String k1, String k2) throws InvalidAddressException {
+	public List<Entry<String, Long>> getBetweenKeysOPI(String k1, String k2) throws InvalidAddressException {
 		GetBetweenOrderPreservingRequest request = new GetBetweenOrderPreservingRequest(k1, k2);
 
 		BFTReply reply = processRequest((location) -> {

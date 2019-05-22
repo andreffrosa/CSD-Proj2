@@ -6,13 +6,18 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import hlib.hj.mlib.HomoAdd;
+import hlib.hj.mlib.HomoOpeInt;
+import hlib.hj.mlib.PaillierKey;
 import secureModule.SecureModuleRESTClient;
+import utils.ConditionParser;
 import utils.Cryptography;
 import utils.IO;
 import wallet.exceptions.InvalidAddressException;
 import wallet.exceptions.InvalidAmountException;
+import wallet.exceptions.InvalidOperationException;
 import wallet.exceptions.InvalidSignatureException;
 import wallet.exceptions.InvalidTypeException;
 import wallet.exceptions.NotEnoughMoneyException;
@@ -24,17 +29,17 @@ public class SimpleWallet implements Wallet {
 	private static final String ADMINS_DIRECTORY = "./admins/";
 
 	private Map<String, Double> accounts;
-	private Map<String, Long> orderPreservingVariables;
-	private Map<String, BigInteger> sumVariables;
+	private Map<String, Long> homo_ope_int_variables;
+	private Map<String, BigInteger> homo_add_variables;
 	private List<String> admins;
 	private SecureModuleRESTClient secureModule;
 
 	public SimpleWallet() {
 		accounts = new HashMap<>(DEFAULT_SIZE);
 
-		orderPreservingVariables = new HashMap<String, Long>(DEFAULT_SIZE);
+		homo_ope_int_variables = new HashMap<String, Long>(DEFAULT_SIZE);
 
-		sumVariables = new HashMap<String, BigInteger>(DEFAULT_SIZE);
+		homo_add_variables = new HashMap<String, BigInteger>(DEFAULT_SIZE);
 
 		admins = Cryptography.loadKeys(ADMINS_DIRECTORY, "publicKey");
 
@@ -134,179 +139,195 @@ public class SimpleWallet implements Wallet {
 		return result;
 	}
 
+
 	@Override
-	public boolean putOrderPreservingInt(String id, long n) {
-		// return orderPreservingVariables.putIfAbsent(id, n) == null;
-		return orderPreservingVariables.put(id, n) == null;
+	public boolean create(DataType type, String id, String initial_value) {
+
+		switch(type) {
+		case HOMO_ADD:
+			return homo_add_variables.put(id, new BigInteger(initial_value)) == null;
+		case HOMO_OPE_INT:
+			return homo_ope_int_variables.put(id, Long.parseLong(initial_value)) == null;
+		case WALLET:
+			return accounts.put(id, (double) Integer.parseInt(initial_value)) == null; // transfer?
+		}
+
+		return false;
 	}
 
 	@Override
-	public long getOrderPreservingInt(String id) throws InvalidAddressException {
+	public String get(DataType type, String id) throws InvalidAddressException {
 
-		Long n = orderPreservingVariables.get(id);
-		if (n != null) {
-			return n;
-		} else {
+		Object result = null;
+
+		switch(type) {
+		case HOMO_ADD:
+			result = homo_add_variables.get(id);
+			break;
+		case HOMO_OPE_INT:
+			result = homo_ope_int_variables.get(id);
+			break;
+		case WALLET:
+			Double aux = accounts.get(id);
+			result = aux == null ? null : (Integer) aux.intValue();
+			break;
+		}
+
+		if(result == null)
 			throw new InvalidAddressException(id + " is not registered!");
+		else
+			return result.toString();
+	}
+
+	@Override
+	public List<String> getBetween(List<GetBetweenOP> ops) {
+		List<String> ids = new LinkedList<>();
+
+		List<GetBetweenOP> homo_add_list = new LinkedList<>();
+
+		Map<String, BigInteger> aux_homo_add_vars = new HashMap<>();
+		
+		for(GetBetweenOP op : ops) {
+			switch(op.type) {
+			case HOMO_ADD:
+				for( Entry<String, BigInteger> e : homo_add_variables.entrySet() ) {
+					String id = e.getKey();
+					BigInteger encrypted_value = e.getValue();
+
+					if(id.startsWith(op.prefix)) {
+						aux_homo_add_vars.put(id, encrypted_value);
+					}
+				}
+				homo_add_list.add(op);
+				break;
+			case HOMO_OPE_INT:
+				for( Entry<String, Long> e : homo_ope_int_variables.entrySet() ) {
+					String id = e.getKey();
+					Long encrypted_value = e.getValue();
+
+					if(id.startsWith(op.prefix)) {
+						long lower_value = Long.parseLong(op.low_value);
+						long higher_value = Long.parseLong(op.high_value);
+
+						if( lower_value <= encrypted_value && encrypted_value <= higher_value ) {
+							ids.add(id);
+						}
+					}
+				}
+				break;
+			case WALLET:
+				for( Entry<String, Double> e : accounts.entrySet() ) {
+					String id = e.getKey();
+					Integer value = (int) e.getValue().doubleValue();
+
+					if(id.startsWith(op.prefix)) {
+						int lower_value = Integer.parseInt(op.low_value);
+						int higher_value = Integer.parseInt(op.high_value);
+						if( lower_value <= value && value <= higher_value ) {
+							ids.add(id);
+						}
+
+					}
+				}
+				break;
+			}
+		}
+		
+		if(homo_add_list.size() > 0) {
+			ids.addAll(secureModule.getBetweenHomoAdd(aux_homo_add_vars, homo_add_list));
+		}
+
+		return ids;
+	}
+
+	@Override
+	public boolean compare(DataType cond_type, String cond_key, ConditionalOperation cond, String cond_val, String cipheredKey)
+			throws InvalidAddressException, InvalidTypeException, InvalidOperationException {
+
+		BigInteger c_val = new BigInteger(cond_val);
+
+		String value = get(cond_type, cond_key);
+
+		switch (cond_type) {
+		case WALLET:
+			return ConditionParser.evaluate(cond, c_val, Integer.parseInt(value));
+		case HOMO_OPE_INT:
+			return ConditionParser.evaluate(cond, c_val, Long.parseLong(value));
+		case HOMO_ADD:
+			return secureModule.compareHomoAdd(c_val, new BigInteger(value), cipheredKey, cond);
+		default:
+			throw new InvalidTypeException(cond_type + " is not a valid type!");
 		}
 	}
 
 	@Override
-	public List<Entry<String, Long>> getBetween(String k1, String k2) throws InvalidAddressException {
-		List<Entry<String, Long>> result = new LinkedList<>();
+	public boolean set(DataType type, String id, String upd_val) throws InvalidTypeException {
 
-		Long v1 = orderPreservingVariables.get(k1);
-		Long v2 = orderPreservingVariables.get(k2);
-
-		if (v1 == null) {
-			throw new InvalidAddressException(v1 + " is not registered!");
+		switch (type) {
+		case WALLET:
+			accounts.put(id, (double) Integer.parseInt(upd_val));
+			return true;
+		case HOMO_OPE_INT:
+			homo_ope_int_variables.put(id, Long.parseLong(upd_val));
+			return true;
+		case HOMO_ADD:
+			homo_add_variables.put(id, new BigInteger(upd_val));
+			return true;
+		default:
+			throw new InvalidTypeException(type + " is not a valid type!");
 		}
-		if (v2 == null) {
-			throw new InvalidAddressException(v2 + " is not registered!");
-		}
+	}
 
-		for (Entry<String, Long> e : orderPreservingVariables.entrySet()) {
-			if (v1 <= e.getValue() && e.getValue() <= v2) {
-				result.add(e);
+	@Override
+	public String sum(DataType upd_type, String upd_id, String upd_val, String upd_auxArg) throws InvalidAddressException, InvalidTypeException {
+
+		String value = get(upd_type, upd_id);
+
+		switch (upd_type) {
+		case WALLET:			
+			Double d_aux = (double)(Integer.parseInt(upd_val) + Integer.parseInt(value));
+
+			accounts.put(upd_id, d_aux);
+
+			return "" + d_aux.intValue();
+		case HOMO_OPE_INT:
+			Long l_aux = secureModule.addOPI(Long.parseLong(value), Long.parseLong(upd_val), upd_auxArg);
+			homo_ope_int_variables.put(upd_id, l_aux);
+
+			return l_aux.toString();
+		case HOMO_ADD:
+			BigInteger b_aux = HomoAdd.sum(new BigInteger(value), new BigInteger(upd_val), new BigInteger(upd_auxArg));
+
+			homo_add_variables.put(upd_id, b_aux);
+			
+			return b_aux.toString();
+		default:
+			throw new InvalidTypeException(upd_type + " is not a valid type!");
+		}
+	}
+
+	@Override
+	public boolean cond_upd(DataType cond_type, String cond_id, ConditionalOperation cond, String cond_val,
+			String cond_cipheredKey, List<UpdOp> ops)
+					throws InvalidAddressException, InvalidTypeException, InvalidOperationException {
+
+		boolean cmp = compare(cond_type, cond_id, cond, cond_val, cond_cipheredKey);
+		if (cmp) {
+			for(UpdOp op : ops) {
+				switch(op.op) {
+				case SUM:
+					sum(op.upd_type, op.upd_id, op.upd_value, op.auxArg);
+					break;
+				case SET:
+					set(op.upd_type, op.upd_id, op.upd_value);
+					break;
+				default:
+					throw new InvalidOperationException(op.op.name() + " is an invalid operation!");
+				}
 			}
 		}
 
-		return result;
-	}
-
-	@Override
-	public boolean putSumInt(String id, BigInteger n) {
-		// return sumVariables.putIfAbsent(id, n) == null;
-		return sumVariables.put(id, n) == null;
-	}
-
-	@Override
-	public BigInteger getSumInt(String id) throws InvalidAddressException {
-
-		BigInteger n = sumVariables.get(id);
-		if (n != null) {
-			return n;
-		} else {
-			throw new InvalidAddressException(id + " is not registered!");
-		}
-	}
-
-	@Override
-	public BigInteger add_sumInt(String key, BigInteger amount, BigInteger nSquare) throws InvalidAddressException {
-		BigInteger value = HomoAdd.sum(getSumInt(key), amount, nSquare);
-		sumVariables.put(key, value);
-		return value;
-	}
-
-	@Override
-	public BigInteger sub(String key, BigInteger amount, BigInteger nSquare) throws InvalidAddressException {
-		BigInteger value = HomoAdd.dif(getSumInt(key), amount, nSquare);
-		sumVariables.put(key, value);
-		return value;
-	}
-
-	@Override
-	public int compare(String cond_key, String cond_key_type, String cond_val, String cipheredKey)
-			throws InvalidAddressException, InvalidTypeException {
-		BigInteger c_val = new BigInteger(cond_val);
-		BigInteger aux;
-
-		switch (cond_key_type) {
-		case "wallet":
-			aux = new BigInteger("" + (int) balance(cond_key));
-			return aux.compareTo(c_val);
-		case "OPI":
-			aux = new BigInteger("" + getOrderPreservingInt(cond_key));
-			return aux.compareTo(c_val);
-		case "SumInt":
-			BigInteger v1 = getSumInt(cond_key);
-			return secureModule.compareSumInt(v1, c_val, cipheredKey);
-		default:
-			throw new InvalidTypeException(cond_key_type + " is not a valid type!");
-		}
-	}
-
-	private void set(String upd_key, String upd_key_type, String upd_val) throws InvalidTypeException {
-
-		switch (upd_key_type) {
-		case "wallet":
-			double temp1 = (double) Integer.parseInt(upd_val);
-			accounts.put(upd_key, temp1);
-			break;
-		case "OPI":
-			long temp2 = Long.parseLong(upd_val);
-			putOrderPreservingInt(upd_key, temp2);
-			break;
-		case "SumInt":
-			BigInteger temp3 = new BigInteger(upd_val);
-			putSumInt(upd_key, temp3);
-			break;
-		default:
-			throw new InvalidTypeException(upd_key_type + " is not a valid type!");
-		}
-	}
-
-	@Override
-	public String add(String upd_key, String upd_key_type, String upd_val, String upd_auxArg)
-			throws InvalidAddressException, InvalidTypeException {
-
-		String result = "";
-		
-		switch (upd_key_type) {
-		case "wallet":
-			double v1 = (double) Integer.parseInt(upd_val);
-			double v2 = balance(upd_key);
-			
-			accounts.put(upd_key, v1 + v2);
-			
-			result = "" + v1 + v2;
-			break;
-		case "OPI":
-			long amount = Long.parseLong(upd_val);
-			long l = getOrderPreservingInt(upd_key);
-			long value = secureModule.addOPI(l, amount, upd_auxArg);
-			putOrderPreservingInt(upd_key, value);
-			
-			result = "" + value;
-			break;
-		case "SumInt":
-			BigInteger amount2 = new BigInteger(upd_val);
-			BigInteger nSquare = new BigInteger(upd_auxArg);
-
-			BigInteger big = add_sumInt(upd_key, amount2, nSquare);
-			
-			result = big.toString();
-			break;
-		default:
-			throw new InvalidTypeException(upd_key_type + " is not a valid type!");
-		}
-		
-		return result;
-	}
-
-	@Override
-	public boolean cond_set(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey,
-			String upd_key, String upd_key_type, String upd_val) throws InvalidAddressException, InvalidTypeException {
-
-		if (compare(cond_key, cond_key_type, cond_val, cond_cipheredKey) >= 0) {
-			set(upd_key, upd_key_type, upd_val);
-			return true;
-		}
-
-		return false;
-	}
-
-	@Override
-	public boolean cond_add(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey,
-			String upd_key, String upd_key_type, String upd_val, String upd_auxArg)
-			throws InvalidAddressException, InvalidTypeException {
-
-		if (compare(cond_key, cond_key_type, cond_val, cond_cipheredKey) >= 0) {
-			add(upd_key, upd_key_type, upd_val, upd_auxArg);
-			return true;
-		}
-
-		return false;
+		return cmp;
 	}
 
 }

@@ -1,14 +1,13 @@
 package wallet;
 
-import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import wallet.exceptions.InvalidAddressException;
 import wallet.exceptions.InvalidAmountException;
+import wallet.exceptions.InvalidOperationException;
 import wallet.exceptions.InvalidSignatureException;
 import wallet.exceptions.InvalidTypeException;
 import wallet.exceptions.NotEnoughMoneyException;
@@ -41,62 +40,43 @@ public class ByzantineWallet implements Wallet {
 	}
 
 	@Override
-	public boolean putOrderPreservingInt(String id, long n) {
-		return false;
-	}
-
-	@Override
-	public long getOrderPreservingInt(String id) {
-		return (long) Math.random() * Long.MAX_VALUE;
-	}
-
-	@Override
-	public List<Entry<String, Long>> getBetween(String k1, String k2) {
-		return new LinkedList<>();
-	}
-
-	@Override
-	public boolean putSumInt(String id, BigInteger n) {
+	public boolean create(DataType type, String id, String initial_value) {
 		return Math.random() > 0.5;
 	}
 
 	@Override
-	public BigInteger getSumInt(String id) {
-		return BigInteger.ONE;
+	public String get(DataType type, String id) throws InvalidAddressException {
+		return Integer.toString((int) (Math.random()*Integer.MAX_VALUE));
 	}
 
 	@Override
-	public BigInteger add_sumInt(String key, BigInteger amount, BigInteger nSquare) {
-		return BigInteger.ZERO;
+	public List<String> getBetween(DataType type, String id_prefix, String lower_value, String higher_value,
+			String auxArg) {
+		return new ArrayList<String>();
 	}
 
 	@Override
-	public BigInteger sub(String key, BigInteger amount, BigInteger nSquare) {
-		return BigInteger.ZERO;
-	}
-
-	@Override
-	public boolean cond_set(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey,
-			String upd_key, String upd_key_type, String upd_val) {
+	public boolean set(DataType type, String id, String value) throws InvalidTypeException {
 		return Math.random() > 0.5;
 	}
 
 	@Override
-	public boolean cond_add(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey,
-			String upd_key, String upd_key_type, String upd_val, String upd_auxArg) {
-		return Math.random() > 0.5;
-	}
-
-	@Override
-	public String add(String key_type, String key, String amount, String arg)
+	public String sum(DataType key_type, String key, String amount, String arg)
 			throws InvalidAddressException, InvalidTypeException {
-		return "" + ((int) Math.random() * Integer.MAX_VALUE);
+		return Integer.toString((int) (Math.random()*Integer.MAX_VALUE));
 	}
 
 	@Override
-	public int compare(String key_type, String key, String value, String cipheredKey)
-			throws InvalidAddressException, InvalidTypeException {
-		return Integer.compare((int) Math.random() * Integer.MAX_VALUE, (int) Math.random() * Integer.MAX_VALUE);
+	public boolean compare(DataType cond_type, String cond_key, String cond_val, String cipheredKey,
+			ConditionalOperation cond) throws InvalidAddressException, InvalidTypeException, InvalidOperationException {
+		return Math.random() > 0.5;
+	}
+
+	@Override
+	public boolean cond_upd(DataType cond_type, String cond_id, String cond_val, String cond_cipheredKey,
+			ConditionalOperation cond, List<UpdOp> ops)
+			throws InvalidAddressException, InvalidTypeException, InvalidOperationException {
+		return Math.random() > 0.5;
 	}
 
 }

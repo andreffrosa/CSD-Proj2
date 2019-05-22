@@ -107,7 +107,7 @@ public class Test2 {
 		}
 
 		int start = 3, finish = 6;
-		List<Entry<String, Long>> between = wallet.getBetween("OPI-"+start, "OPI-"+finish);
+		List<Entry<String, Long>> between = wallet.getBetweenKeysOPI("OPI-"+start, "OPI-"+finish);
 
 		for(Entry<String, Long> e : between) {
 			System.out.println(e.getKey() + " = " + e.getValue() + "(" + ope.decrypt(e.getValue()) + ")");

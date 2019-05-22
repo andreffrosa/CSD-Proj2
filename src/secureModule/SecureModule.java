@@ -1,5 +1,7 @@
 package secureModule;
 
+import java.util.List;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -23,6 +25,13 @@ public interface SecureModule {
 	@Path(COMPARE_SUM_PATH)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public int compareSumInt(String request);
+	public boolean compareHomoAdd(String request);
+	
+	static final String BETWEEN_SUM_PATH = "/betweenSumInt";
+	@POST
+	@Path(BETWEEN_SUM_PATH)
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<String> getBetweenHomoAdd(String request);
 	
 }

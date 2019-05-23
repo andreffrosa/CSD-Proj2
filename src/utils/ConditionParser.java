@@ -3,7 +3,6 @@ package utils;
 import java.math.BigInteger;
 
 import wallet.ConditionalOperation;
-import wallet.DataType;
 import wallet.exceptions.InvalidOperationException;
 
 public class ConditionParser {

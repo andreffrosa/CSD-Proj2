@@ -2,22 +2,16 @@ package secureModule;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.crypto.SecretKey;
-
-import org.glassfish.jersey.client.RequestEntityProcessing;
 
 import com.google.gson.GsonBuilder;
 
 import hlib.hj.mlib.HomoAdd;
 import hlib.hj.mlib.HomoOpeInt;
 import hlib.hj.mlib.PaillierKey;
-import utils.Bytes;
 import utils.ConditionParser;
 import utils.Cryptography;
 import wallet.ConditionalOperation;
@@ -45,7 +39,7 @@ public class SecureModuleImpl implements SecureModule {
 			long key = Long.parseLong(new String(Cryptography.decrypt(secret_key, rawCipheredKey, CIPHER_ALGORITHM)));
 
 			// Decrypt opi
-			HomoOpeInt ope = new HomoOpeInt(key);
+			HomoOpeInt ope = new HomoOpeInt(id);
 			int value = ope.decrypt(opi);
 			int raw_amount = ope.decrypt(amount);
 

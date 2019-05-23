@@ -64,7 +64,7 @@ public class TestSimpleWallet {
 
 	private static void test_cond_add(Wallet wallet, String x_type, String x_name, int x, int n, String y_type, String y_name, int y, int u) throws Exception {
 		long key = HomoOpeInt.generateKey();
-		HomoOpeInt ope = new HomoOpeInt(key);
+		HomoOpeInt ope = new HomoOpeInt(id);
 
 		PaillierKey pk = HomoAdd.generateKey();
 
@@ -113,7 +113,7 @@ public class TestSimpleWallet {
 
 			u_ = "" + ope.encrypt(u);
 
-			byte[] rawCipheredKey = Cryptography.encrypt(secretKey, Bytes.toBytes(key), SecureModuleImpl.CIPHER_ALGORITHM);
+			byte[] rawCipheredKey = Cryptography.encrypt(secretKey, Bytes.toBytes(id), SecureModuleImpl.CIPHER_ALGORITHM);
 			String cipheredKey = java.util.Base64.getEncoder().encodeToString(rawCipheredKey);
 			upd_auxArg = cipheredKey;
 
@@ -148,7 +148,7 @@ public class TestSimpleWallet {
 	// if x >= n then y = u
 	private static void test_cond_set(Wallet wallet, String x_type, String x_name, int x, int n, String y_type, String y_name, int y, int u) throws Exception {
 		long key = HomoOpeInt.generateKey();
-		HomoOpeInt ope = new HomoOpeInt(key);
+		HomoOpeInt ope = new HomoOpeInt(id);
 
 		PaillierKey pk = HomoAdd.generateKey();
 

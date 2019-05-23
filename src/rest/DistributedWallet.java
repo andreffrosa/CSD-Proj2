@@ -8,7 +8,9 @@ import javax.ws.rs.core.MediaType;
 
 import wallet.exceptions.InvalidAddressException;
 import wallet.exceptions.InvalidAmountException;
+import wallet.exceptions.InvalidOperationException;
 import wallet.exceptions.InvalidSignatureException;
+import wallet.exceptions.InvalidTypeException;
 import wallet.exceptions.NotEnoughMoneyException;
 
 @Path(DistributedWallet.PATH)
@@ -21,7 +23,7 @@ public interface DistributedWallet {
 	@Path(TRANSFER_PATH)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] transfer(String request)
+	public byte[] transfer(String request)
 			throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException;
 
 	static final String ATOMIC_TRANSFER_PATH = "/atomicTransfer";
@@ -29,7 +31,7 @@ public interface DistributedWallet {
 	@Path(ATOMIC_TRANSFER_PATH)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] atomicTransfer(String request)
+	public byte[] atomicTransfer(String request)
 			throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException;
 
 	static final String BALANCE_PATH = "/balance";
@@ -37,91 +39,63 @@ public interface DistributedWallet {
 	@Path(BALANCE_PATH)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] balance(String request);
+	public byte[] balance(String request);
 
 	static final String LEDGER_PATH = "/ledger";
 	@POST
 	@Path(LEDGER_PATH)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] ledger(String request);
-	
-	
-	static final String PUT_OPI_PATH = "/PutOrderPreservingInt/";
+	public byte[] ledger(String request);
+
+	static final String CREATE_PATH = "/create";
 	@POST
-	@Path(PUT_OPI_PATH)
+	@Path(CREATE_PATH)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] putOrderPreservingInt(String request); // TODO: precisa de assinatura?
-	
-	static final String GET_OPI_PATH = "/GetOrderPreservingInt/";
+	public byte[] create(String request);
+
+	static final String GET_PATH = "/get";
 	@POST
-	@Path(GET_OPI_PATH)
+	@Path(GET_PATH)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] getOrderPreservingInt(String request);
-	
-	static final String GET_BETWEEN_OPI_PATH = "/GetBetweenOrderPreservingInt/";
+	public byte[] get(String request) throws InvalidAddressException;
+
+	static final String GET_BETWEEN_PATH = "/getBetween";
 	@POST
-	@Path(GET_BETWEEN_OPI_PATH)
+	@Path(GET_BETWEEN_PATH)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] getBetween(String request);
-	
-	static final String PUT_SUM_PATH = "/PutSumInt/";
+	public byte[] getBetween(String request);
+
+	static final String SET_PATH = "/set";
 	@POST
-	@Path(PUT_SUM_PATH)
+	@Path(SET_PATH)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] putSumInt(String request); // precisa de assinatura?
-	
-	static final String GET_SUM_PATH = "/GetSumInt/";
+	public byte[] set(String request) throws InvalidTypeException;
+
+	static final String SUM_PATH = "/sum";
 	@POST
-	@Path(GET_SUM_PATH)
+	@Path(SUM_PATH)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] getSumInt(String request);
-	
-	static final String ADD_SUMINT_PATH = "/addSumInt/";
-	@POST
-	@Path(ADD_SUMINT_PATH)
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] add_sumInt(String request);
-	
-	static final String DIF_PATH = "/dif/";
-	@POST
-	@Path(DIF_PATH)
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] sub(String request);
-	
-	static final String COND_SET_PATH = "/cond_set/";
-	@POST
-	@Path(COND_SET_PATH)
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] cond_set(String request);
-	
-	static final String COND_ADD_PATH = "/cond_add/";
-	@POST
-	@Path(COND_ADD_PATH)
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] cond_add(String request);
-	
-	static final String ADD_PATH = "/add/";
-	@POST
-	@Path(ADD_PATH)
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] add(String request);
-	
-	static final String COMPARE_PATH = "/compare/";
+	public byte[] sum(String request) throws InvalidAddressException, InvalidTypeException;
+
+	static final String COMPARE_PATH = "/sum";
 	@POST
 	@Path(COMPARE_PATH)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] compare(String request);
-	
+	public byte[] compare(String request) throws InvalidAddressException, InvalidTypeException, InvalidOperationException;
+
+	static final String COND_UPD_PATH = "/condUpd";
+	@POST
+	@Path(COND_UPD_PATH)
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_OCTET_STREAM)
+	public byte[] cond_upd(String request) throws InvalidAddressException, InvalidTypeException, InvalidOperationException;
+
+
 }

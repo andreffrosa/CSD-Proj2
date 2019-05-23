@@ -82,7 +82,7 @@ public class Test2 {
 
 	private static void testOPI(Wallet wallet) throws InvalidAddressException {
 		long key = HomoOpeInt.generateKey();
-		HomoOpeInt ope = new HomoOpeInt(key);
+		HomoOpeInt ope = new HomoOpeInt(id);
 
 		int max = 10;
 

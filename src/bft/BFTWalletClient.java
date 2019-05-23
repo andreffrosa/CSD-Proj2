@@ -4,12 +4,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
-import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 
 import bft.reply.ReplyExtractor;
 import bftsmart.tom.ServiceProxy;
+import wallet.ConditionalOperation;
+import wallet.DataType;
+import wallet.GetBetweenOP;
 import wallet.Transaction;
+import wallet.UpdOp;
 
 public class BFTWalletClient {
 
@@ -101,15 +105,16 @@ public class BFTWalletClient {
 			throw new RuntimeException("Exception ledger: " + e.getMessage());
 		}
 	}
-	
-	byte[] putOrderPreservingInt(String id, long value, long nonce) {
+
+	public byte[] create(DataType type, String id, String initial_value, long nonce) {
 		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
 
-			objOut.writeObject(BFTWalletRequestType.PUT_OPI);
+			objOut.writeObject(BFTWalletRequestType.CREATE);
 			objOut.writeLong(nonce);
+			objOut.writeUTF(type.toString());
 			objOut.writeUTF(id);
-			objOut.writeLong(value);
+			objOut.writeUTF(initial_value);
 
 			objOut.flush();
 			byteOut.flush();
@@ -118,75 +123,17 @@ public class BFTWalletClient {
 			
 			return reply;
 		} catch (IOException e) {
-			throw new RuntimeException("Exception putting OPInt: " + e.getMessage());
+			throw new RuntimeException("Exception compare: " + e.getMessage());
 		}
 	}
 	
-	byte[] getOrderPreservingInt(String id, long nonce) {
+	public byte[] get(DataType type, String id, long nonce) {
 		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
 
-			objOut.writeObject(BFTWalletRequestType.GET_OPI);
+			objOut.writeObject(BFTWalletRequestType.GET);
 			objOut.writeLong(nonce);
-			objOut.writeUTF(id);
-
-			objOut.flush();
-			byteOut.flush();
-
-			byte[] reply = serviceProxy.invokeUnordered(byteOut.toByteArray());
-			
-			return reply;
-		} catch (IOException e) {
-			throw new RuntimeException("Exception getting OPInt: " + e.getMessage());
-		}
-	}
-	
-	byte[] getBetween(String k1, String k2, long nonce) {
-		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
-
-			objOut.writeObject(BFTWalletRequestType.GET_BETWEEN_OPI);
-			objOut.writeLong(nonce);
-			objOut.writeUTF(k1);
-			objOut.writeUTF(k2);
-
-			objOut.flush();
-			byteOut.flush();
-
-			byte[] reply = serviceProxy.invokeUnordered(byteOut.toByteArray());
-			
-			return reply;
-		} catch (IOException e) {
-			throw new RuntimeException("Exception getting between OPInt: " + e.getMessage());
-		}
-	}
-	
-	byte[] putSumInt(String id, BigInteger value, long nonce) {
-		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
-
-			objOut.writeObject(BFTWalletRequestType.PUT_SUM);
-			objOut.writeLong(nonce);
-			objOut.writeUTF(id);
-			objOut.writeObject(value);
-
-			objOut.flush();
-			byteOut.flush();
-
-			byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
-			
-			return reply;
-		} catch (IOException e) {
-			throw new RuntimeException("Exception putting SumInt: " + e.getMessage());
-		}
-	}
-
-	byte[] getSumInt(String id, long nonce) {
-		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
-
-			objOut.writeObject(BFTWalletRequestType.GET_SUM);
-			objOut.writeLong(nonce);
+			objOut.writeUTF(type.toString());
 			objOut.writeUTF(id);
 
 			objOut.flush();
@@ -196,19 +143,38 @@ public class BFTWalletClient {
 			
 			return reply;
 		} catch (IOException e) {
-			throw new RuntimeException("Exception getting SumInt: " + e.getMessage());
+			throw new RuntimeException("Exception get: " + e.getMessage());
 		}
 	}
-	
-	byte[] add(String id, BigInteger amount, BigInteger nSquare, long nonce) {
+
+	public byte[] getBetween(ArrayList<GetBetweenOP> ops, long nonce) {
 		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
 
-			objOut.writeObject(BFTWalletRequestType.ADD_SUM);
+			objOut.writeObject(BFTWalletRequestType.GET_BETWEEN);
 			objOut.writeLong(nonce);
+			objOut.writeObject(ops);
+
+			objOut.flush();
+			byteOut.flush();
+
+			byte[] reply = serviceProxy.invokeUnordered(byteOut.toByteArray());
+			
+			return reply;
+		} catch (IOException e) {
+			throw new RuntimeException("Exception getBetween: " + e.getMessage());
+		}
+	}
+
+	public byte[] set(DataType type, String id, String value, long nonce) {
+		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
+
+			objOut.writeObject(BFTWalletRequestType.SET);
+			objOut.writeLong(nonce);
+			objOut.writeUTF(type.toString());
 			objOut.writeUTF(id);
-			objOut.writeObject(amount);
-			objOut.writeObject(nSquare);
+			objOut.writeUTF(value);
 
 			objOut.flush();
 			byteOut.flush();
@@ -217,19 +183,20 @@ public class BFTWalletClient {
 			
 			return reply;
 		} catch (IOException e) {
-			throw new RuntimeException("Exception add: " + e.getMessage());
+			throw new RuntimeException("Exception set: " + e.getMessage());
 		}
 	}
-	
-	byte[] dif(String id, BigInteger amount, BigInteger nSquare, long nonce) {
+
+	public byte[] sum(DataType type, String id, String amount, String arg, long nonce) {
 		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
 
-			objOut.writeObject(BFTWalletRequestType.DIF);
+			objOut.writeObject(BFTWalletRequestType.SUM);
 			objOut.writeLong(nonce);
+			objOut.writeUTF(type.toString());
 			objOut.writeUTF(id);
-			objOut.writeObject(amount);
-			objOut.writeObject(nSquare);
+			objOut.writeUTF(amount);
+			objOut.writeUTF(arg);
 
 			objOut.flush();
 			byteOut.flush();
@@ -238,93 +205,20 @@ public class BFTWalletClient {
 			
 			return reply;
 		} catch (IOException e) {
-			throw new RuntimeException("Exception diff: " + e.getMessage());
+			throw new RuntimeException("Exception sum: " + e.getMessage());
 		}
 	}
-	
-	public byte[] cond_set(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey, String upd_key, String upd_key_type, String upd_val, long nonce) {
-		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
 
-			objOut.writeObject(BFTWalletRequestType.COND_SET);
-			objOut.writeLong(nonce);
-			objOut.writeUTF(cond_key);
-			objOut.writeUTF(cond_key_type);
-			objOut.writeUTF(cond_val);
-			objOut.writeUTF(cond_cipheredKey);
-			objOut.writeUTF(upd_key);
-			objOut.writeUTF(upd_key_type);
-			objOut.writeUTF(upd_val);
-
-			objOut.flush();
-			byteOut.flush();
-
-			byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
-			
-			return reply;
-		} catch (IOException e) {
-			throw new RuntimeException("Exception cond_set: " + e.getMessage());
-		}
-	}
-	
-	public byte[] cond_add(String cond_key, String cond_key_type, String cond_val, String cond_cipheredKey, String upd_key, String upd_key_type, String upd_val, String upd_auxArg, long nonce) {
-		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
-
-			objOut.writeObject(BFTWalletRequestType.COND_ADD);
-			objOut.writeLong(nonce);
-			objOut.writeUTF(cond_key);
-			objOut.writeUTF(cond_key_type);
-			objOut.writeUTF(cond_val);
-			objOut.writeUTF(cond_cipheredKey);
-			objOut.writeUTF(upd_key);
-			objOut.writeUTF(upd_key_type);
-			objOut.writeUTF(upd_val);
-			objOut.writeUTF(upd_auxArg);
-
-			objOut.flush();
-			byteOut.flush();
-
-			byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
-			
-			return reply;
-		} catch (IOException e) {
-			throw new RuntimeException("Exception cond_add: " + e.getMessage());
-		}
-	}
-	
-	public byte[] add(String key, String key_type, String val, String auxArg, long nonce) {
-		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
-
-			objOut.writeObject(BFTWalletRequestType.ADD);
-			objOut.writeLong(nonce);
-			objOut.writeUTF(key);
-			objOut.writeUTF(key_type);
-			objOut.writeUTF(val);
-			objOut.writeUTF(auxArg);
-
-			objOut.flush();
-			byteOut.flush();
-
-			byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
-			
-			return reply;
-		} catch (IOException e) {
-			throw new RuntimeException("Exception add: " + e.getMessage());
-		}
-	}
-	
-	public byte[] compare(String key, String key_type, String val, String cipheredKey, long nonce) {
+	public byte[] compare(DataType cond_type, String cond_id, ConditionalOperation cond, String cond_val, long nonce) {
 		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
 
 			objOut.writeObject(BFTWalletRequestType.COMPARE);
 			objOut.writeLong(nonce);
-			objOut.writeUTF(key);
-			objOut.writeUTF(key_type);
-			objOut.writeUTF(val);
-			objOut.writeUTF(cipheredKey);
+			objOut.writeUTF(cond_type.toString());
+			objOut.writeUTF(cond_id);
+			objOut.writeUTF(cond.toString());
+			objOut.writeUTF(cond_val);
 
 			objOut.flush();
 			byteOut.flush();
@@ -334,6 +228,31 @@ public class BFTWalletClient {
 			return reply;
 		} catch (IOException e) {
 			throw new RuntimeException("Exception compare: " + e.getMessage());
+		}
+	}
+
+	public byte[] cond_upd(DataType cond_type, String cond_id, ConditionalOperation cond, String cond_val,
+			String cond_cipheredKey, ArrayList<UpdOp> ops, long nonce) {
+		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
+
+			objOut.writeObject(BFTWalletRequestType.COND_UPD);
+			objOut.writeLong(nonce);
+			objOut.writeUTF(cond_type.toString());
+			objOut.writeUTF(cond_id);
+			objOut.writeUTF(cond.toString());
+			objOut.writeUTF(cond_val);
+			objOut.writeUTF(cond_cipheredKey);
+			objOut.writeObject(ops);
+
+			objOut.flush();
+			byteOut.flush();
+
+			byte[] reply = serviceProxy.invokeOrdered(byteOut.toByteArray());
+			
+			return reply;
+		} catch (IOException e) {
+			throw new RuntimeException("Exception cond_upd: " + e.getMessage());
 		}
 	}
 	

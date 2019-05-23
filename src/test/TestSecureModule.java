@@ -32,12 +32,12 @@ public class TestSecureModule {
 	
 	long key = HomoOpeInt.generateKey();
 	
-	HomoOpeInt ope = new HomoOpeInt(key);
+	HomoOpeInt ope = new HomoOpeInt(id);
 	
 	long v1 = ope.encrypt(10);
 
 	SecretKey secretKey = Cryptography.parseSecretKey(Cryptography.loadKeys("./keys/secureModuleServer/", "secretKey").get(0), null, SecureModuleImpl.CIPHER_ALGORITHM);
-	byte[] rawCipheredKey = Cryptography.encrypt(secretKey, Bytes.toBytes(key), SecureModuleImpl.CIPHER_ALGORITHM);
+	byte[] rawCipheredKey = Cryptography.encrypt(secretKey, Bytes.toBytes(id), SecureModuleImpl.CIPHER_ALGORITHM);
 	String cipheredKey = java.util.Base64.getEncoder().encodeToString(rawCipheredKey);
 	
 	long result = sec_module.addOPI(v1, 100, cipheredKey);

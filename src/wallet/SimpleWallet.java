@@ -5,12 +5,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 import hlib.hj.mlib.HomoAdd;
-import hlib.hj.mlib.HomoOpeInt;
-import hlib.hj.mlib.PaillierKey;
 import secureModule.SecureModuleRESTClient;
 import utils.ConditionParser;
 import utils.Cryptography;

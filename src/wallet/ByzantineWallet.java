@@ -49,9 +49,7 @@ public class ByzantineWallet implements Wallet {
 		return Integer.toString((int) (Math.random()*Integer.MAX_VALUE));
 	}
 
-	@Override
-	public List<String> getBetween(DataType type, String id_prefix, String lower_value, String higher_value,
-			String auxArg) {
+	public List<String> getBetween(List<GetBetweenOP> ops) {
 		return new ArrayList<String>();
 	}
 
@@ -67,14 +65,14 @@ public class ByzantineWallet implements Wallet {
 	}
 
 	@Override
-	public boolean compare(DataType cond_type, String cond_key, String cond_val, String cipheredKey,
-			ConditionalOperation cond) throws InvalidAddressException, InvalidTypeException, InvalidOperationException {
+	public boolean compare(DataType cond_type, String cond_key, ConditionalOperation cond, String cond_val,
+			String cipheredKey) throws InvalidAddressException, InvalidTypeException, InvalidOperationException {
 		return Math.random() > 0.5;
 	}
 
 	@Override
-	public boolean cond_upd(DataType cond_type, String cond_id, String cond_val, String cond_cipheredKey,
-			ConditionalOperation cond, List<UpdOp> ops)
+	public boolean cond_upd(DataType cond_type, String cond_id, ConditionalOperation cond, String cond_val,
+			String cond_cipheredKey, List<UpdOp> ops)
 			throws InvalidAddressException, InvalidTypeException, InvalidOperationException {
 		return Math.random() > 0.5;
 	}

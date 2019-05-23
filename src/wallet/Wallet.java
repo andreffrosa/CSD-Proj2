@@ -49,7 +49,7 @@ public interface Wallet {
 	 * @throws InvalidAddressException 
 	 * 
 	 * */
-	public String get(DataType type, String id) throws InvalidAddressException;
+	public String get(DataType type, String id) throws InvalidTypeException, InvalidAddressException;
 	
 	/**
 	 * 
@@ -58,16 +58,17 @@ public interface Wallet {
 	
 	/**
 	 * @throws InvalidTypeException 
+	 * @throws InvalidAddressException 
 	 * 
 	 * */
-	public boolean set(DataType type, String id, String value) throws InvalidTypeException;
+	public boolean set(DataType type, String id, String value) throws InvalidTypeException, InvalidAddressException;
 	
 	/**
 	 * @throws InvalidAddressException 
 	 * @throws InvalidTypeException 
 	 * 
 	 * */
-	String sum(DataType key_type, String key, String amount, String arg) throws InvalidAddressException, InvalidTypeException;
+	public String sum(DataType key_type, String key, String amount, String arg) throws InvalidAddressException, InvalidTypeException;
 	
 	/**
 	 * @throws InvalidAddressException 
@@ -75,7 +76,7 @@ public interface Wallet {
 	 * @throws InvalidOperationException 
 	 * 
 	 * */
-	public boolean compare(DataType cond_type, String cond_key, ConditionalOperation cond, String cond_val, String cipheredKey)
+	public boolean compare(DataType cond_type, String cond_id, ConditionalOperation cond, String cond_val, String cipheredKey)
 			throws InvalidAddressException, InvalidTypeException, InvalidOperationException;
 		
 	/**

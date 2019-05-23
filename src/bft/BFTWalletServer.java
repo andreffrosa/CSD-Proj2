@@ -9,6 +9,7 @@ import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,21 +21,18 @@ import bft.reply.BFTWalletResultType;
 import bftsmart.tom.MessageContext;
 import bftsmart.tom.ServiceReplica;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
-import rest.entities.AddRequest;
-import rest.entities.AddSumRequest;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
-import rest.entities.CondAddRequest;
-import rest.entities.CondSetRequest;
-import rest.entities.GetBetweenOrderPreservingRequest;
-import rest.entities.GetOrderPreservingRequest;
-import rest.entities.GetSumRequest;
+import rest.entities.CreateRequest;
+import rest.entities.GetBetweenRequest;
+import rest.entities.GetRequest;
 import rest.entities.LedgerRequest;
-import rest.entities.PutOrderPreservingRequest;
-import rest.entities.PutSumRequest;
 import rest.entities.TransferRequest;
+import secureModule.AddRequest;
 import utils.Serializor;
 import wallet.ByzantineWallet;
+import wallet.DataType;
+import wallet.GetBetweenOP;
 import wallet.SimpleWallet;
 import wallet.Transaction;
 import wallet.Wallet;
@@ -75,7 +73,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 		results = new HashMap<>();
 
 		System.out.println("publicKey: " + java.util.Base64.getEncoder()
-				.encodeToString(replica.getReplicaContext().getStaticConfiguration().getPublicKey(id).getEncoded()));
+		.encodeToString(replica.getReplicaContext().getStaticConfiguration().getPublicKey(id).getEncoded()));
 	}
 
 	public static void main(String[] args) {
@@ -544,7 +542,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 				String add_value = objIn.readUTF();
 				String auxArg = objIn.readUTF();
 
-				op_hash = AddRequest.computeHash(key, key_type, add_value, auxArg, nonce);
+				op_hash = AddRequest.computeHash(id, key_type, add_value, auxArg, nonce);
 				val = chechResults(op_hash);
 				cached = (val != null);
 				if (!cached) {
@@ -552,7 +550,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 					String result = "";
 					try {
 						objOut.writeObject(op_hash);
-						String ret = wallet.add(key, key_type, add_value, auxArg);
+						String ret = wallet.add(id, key_type, add_value, auxArg);
 
 						result = "OK -> " + ret;
 
@@ -572,16 +570,16 @@ public class BFTWalletServer extends DefaultRecoverable {
 
 					hasReply = true;
 
-					System.out.println("(" + iterations + ") add(" + key_type + ", " + key + ", " + val + ", " + auxArg + ") : " + result);
+					System.out.println("(" + iterations + ") add(" + key_type + ", " + id + ", " + val + ", " + auxArg + ") : " + result);
 				}
 				break;
 			case COMPARE:
-				key = objIn.readUTF();
+				id = objIn.readUTF();
 				key_type = objIn.readUTF();
 				add_value = objIn.readUTF();
 				String cipheredKey = objIn.readUTF();
 
-				op_hash = AddRequest.computeHash(key, key_type, add_value, cipheredKey, nonce);
+				op_hash = AddRequest.computeHash(id, key_type, add_value, cipheredKey, nonce);
 				val = chechResults(op_hash);
 				cached = (val != null);
 				if (!cached) {
@@ -589,7 +587,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 					String result = "";
 					try {
 						objOut.writeObject(op_hash);
-						int ret = wallet.compare(key, key_type, add_value, cipheredKey);
+						int ret = wallet.compare(id, key_type, add_value, cipheredKey);
 
 						result = "OK -> " + ret;
 
@@ -609,7 +607,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 
 					hasReply = true;
 
-					System.out.println("(" + iterations + ") add(" + key_type + ", " + key + ", " + val + ", " + cipheredKey + ") : " + result);
+					System.out.println("(" + iterations + ") add(" + key_type + ", " + id + ", " + val + ", " + cipheredKey + ") : " + result);
 				}
 				break;
 
@@ -785,7 +783,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 				String add_value = objIn.readUTF();
 				String cipheredKey = objIn.readUTF();
 
-				op_hash = AddRequest.computeHash(key, key_type, add_value, cipheredKey, nonce);
+				op_hash = AddRequest.computeHash(id, key_type, add_value, cipheredKey, nonce);
 				val = chechResults(op_hash);
 				cached = (val != null);
 				if (!cached) {
@@ -793,7 +791,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 					String result = "";
 					try {
 						objOut.writeObject(op_hash);
-						int ret = wallet.compare(key, key_type, add_value, cipheredKey);
+						int ret = wallet.compare(id, key_type, add_value, cipheredKey);
 
 						result = "OK -> " + ret;
 
@@ -813,7 +811,7 @@ public class BFTWalletServer extends DefaultRecoverable {
 
 					hasReply = true;
 
-					System.out.println("(" + iterations + ") add(" + key_type + ", " + key + ", " + val + ", " + cipheredKey + ") : " + result);
+					System.out.println("(" + iterations + ") add(" + key_type + ", " + id + ", " + val + ", " + cipheredKey + ") : " + result);
 				}
 				break;
 
@@ -871,6 +869,98 @@ public class BFTWalletServer extends DefaultRecoverable {
 		}
 
 		return replies;
+	}
+
+	private boolean create(ObjectInput objIn, long nonce, ByteArrayOutputStream byteOut, ObjectOutput objOut) throws IOException {
+		DataType type = DataType.valueOf(objIn.readUTF());
+		String id = objIn.readUTF();
+		String initial_value = objIn.readUTF();
+
+		String op_hash = CreateRequest.computeHash(type, id, initial_value, nonce);
+		byte[] val = chechResults(op_hash);
+		boolean cached = (val != null);
+
+		if (!cached) {
+			objOut.writeObject(op_hash);
+			boolean ret = wallet.create(type, id, initial_value);
+
+			String result = "OK -> " + ret;
+
+			objOut.writeObject(BFTWalletResultType.OK);
+			objOut.writeObject(ret);
+
+			System.out.println("(" + iterations + ") create(" + type + ", " + id + ", " + initial_value + ") : " + result);
+
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	private boolean get(ObjectInput objIn, long nonce, ByteArrayOutputStream byteOut, ObjectOutput objOut) throws IOException {
+
+		DataType type = DataType.valueOf(objIn.readUTF());
+		String id = objIn.readUTF();
+
+		String op_hash = GetRequest.computeHash(type, id, nonce);
+		byte[] val = chechResults(op_hash);
+		boolean cached = (val != null);
+
+		if (!cached) {
+			objOut.writeObject(op_hash);
+			String result;
+			try {
+				String ret = wallet.get(type, id);
+
+				result = "OK -> " + ret;
+
+				objOut.writeObject(BFTWalletResultType.OK);
+				objOut.writeObject(ret);
+			} catch(InvalidAddressException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
+				objOut.writeObject(e.getMessage());
+
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
+			} catch(InvalidTypeException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_TYPE);
+				objOut.writeObject(e.getMessage());
+
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_TYPE;
+			}
+
+			System.out.println("(" + iterations + ") get(" + type + ", " + id + ") : " + result);
+
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private boolean getBetween(ObjectInput objIn, long nonce, ByteArrayOutputStream byteOut, ObjectOutput objOut) throws IOException, ClassNotFoundException {
+
+		ArrayList<GetBetweenOP> ops = (ArrayList<GetBetweenOP>) objIn.readObject();
+
+		String op_hash = GetBetweenRequest.computeHash(ops, nonce);
+		byte[] val = chechResults(op_hash);
+		boolean cached = (val != null);
+
+		if (!cached) {
+			objOut.writeObject(op_hash);
+
+			List<String> ret = wallet.getBetween(ops);
+
+			String result = "OK -> " + ret.size();
+
+			objOut.writeObject(BFTWalletResultType.OK);
+			objOut.writeObject(ret);
+
+			System.out.println("(" + iterations + ") getBetween(" + ops.size() + ") : " + result);
+
+			return false;
+		} else {
+			return true;
+		}
 	}
 
 }

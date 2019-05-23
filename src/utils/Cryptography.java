@@ -139,7 +139,7 @@ public class Cryptography {
 	}
 
 	public static SecretKey parseSecretKey(String key, KeyFactory kf, String alg) {
-		byte[] decoded = java.util.Base64.getDecoder().decode(id);
+		byte[] decoded = java.util.Base64.getDecoder().decode(key);
 		return new SecretKeySpec(decoded, 0, decoded.length, alg);
 	}
 
@@ -221,7 +221,7 @@ public class Cryptography {
 	}
 
 	public static void storeKeyInFile(String key, String path) {
-		IO.storeTextFile(id, path);
+		IO.storeTextFile(key, path);
 	}
 
 	public static String loadKeyInFile(String path) {
@@ -253,7 +253,7 @@ public class Cryptography {
 		for (Entry<String, String> e : keys.entrySet()) {
 			String key = e.getKey();
 			String path = e.getValue();
-			storeKeyInFile(id, path);
+			storeKeyInFile(key, path);
 		}
 	}
 
@@ -277,7 +277,7 @@ public class Cryptography {
 	public static byte[] encrypt(Key key, byte[] plainText, String alg) {
 		try {
 			javax.crypto.Cipher c = javax.crypto.Cipher.getInstance(alg);
-			c.init(javax.crypto.Cipher.ENCRYPT_MODE, id);
+			c.init(javax.crypto.Cipher.ENCRYPT_MODE, key);
 
 			byte[] cipherText = new byte[c.getOutputSize(plainText.length)];
 			int ctLength = c.update(plainText, 0, plainText.length, cipherText, 0);
@@ -294,7 +294,7 @@ public class Cryptography {
 	public static byte[] decrypt(Key key, byte[] cipherText, String alg) {
 		try {
 			javax.crypto.Cipher c = javax.crypto.Cipher.getInstance(alg);
-			c.init(javax.crypto.Cipher.DECRYPT_MODE, id);
+			c.init(javax.crypto.Cipher.DECRYPT_MODE, key);
 
 			byte[] plainText = new byte[c.getOutputSize(cipherText.length)];
 			int ptLength = c.update(cipherText, 0, cipherText.length, plainText, 0);

@@ -39,7 +39,7 @@ public class SecureModuleImpl implements SecureModule {
 			long key = Long.parseLong(new String(Cryptography.decrypt(secret_key, rawCipheredKey, CIPHER_ALGORITHM)));
 
 			// Decrypt opi
-			HomoOpeInt ope = new HomoOpeInt(id);
+			HomoOpeInt ope = new HomoOpeInt(key);
 			int value = ope.decrypt(opi);
 			int raw_amount = ope.decrypt(amount);
 

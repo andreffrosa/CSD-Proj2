@@ -209,7 +209,7 @@ public class BFTWalletClient {
 		}
 	}
 
-	public byte[] compare(DataType cond_type, String cond_id, ConditionalOperation cond, String cond_val, long nonce) {
+	public byte[] compare(DataType cond_type, String cond_id, ConditionalOperation cond, String cond_val, String ciphered_key, long nonce) {
 		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
 
@@ -219,6 +219,7 @@ public class BFTWalletClient {
 			objOut.writeUTF(cond_id);
 			objOut.writeUTF(cond.toString());
 			objOut.writeUTF(cond_val);
+			objOut.writeUTF(ciphered_key);
 
 			objOut.flush();
 			byteOut.flush();

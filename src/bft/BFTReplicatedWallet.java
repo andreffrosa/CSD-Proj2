@@ -97,7 +97,7 @@ public class BFTReplicatedWallet implements DistributedWallet {
 	public byte[] compare(String request)
 			throws InvalidAddressException, InvalidTypeException, InvalidOperationException {
 		CompareRequest req = new GsonBuilder().create().fromJson(request, CompareRequest.class);
-		return wallet.compare(req.cond_type, req.cond_id, req.cond, req.cond_val, req.getNonce());
+		return wallet.compare(req.cond_type, req.cond_id, req.cond, req.cond_val, req.cipheredKey, req.getNonce());
 	}
 
 	@Override

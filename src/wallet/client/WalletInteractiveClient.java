@@ -86,7 +86,7 @@ public class WalletInteractiveClient {
 					String to = console.readLine("\tto: ").trim();
 					amount = Double.parseDouble(console.readLine("\tamount: ").trim());
 					String key = from.equals(ADMIN_PUB_KEY) ? ADMIN_PRIV_KEY : privateKey;
-					Transaction t = new Transaction(from, to, amount, id);
+					Transaction t = new Transaction(from, to, amount, key);
 					System.out.println("\tsignature: " + t.getSignature());
 					boolean status = wallet.transfer(t);
 					System.out.println("--> Status: " + status);
@@ -99,8 +99,8 @@ public class WalletInteractiveClient {
 						from = console.readLine("\tfrom: ").trim();
 						to = console.readLine("\tto: ").trim();
 						amount = Double.parseDouble(console.readLine("\tamount: ").trim());
-						id = from.equals(ADMIN_PUB_KEY) ? ADMIN_PRIV_KEY : privateKey;
-						t = new Transaction(from, to, amount, id);
+						key = from.equals(ADMIN_PUB_KEY) ? ADMIN_PRIV_KEY : privateKey;
+						t = new Transaction(from, to, amount, key);
 						transactions.add(t);
 						System.out.println("\tsignature: " + t.getSignature());
 					}

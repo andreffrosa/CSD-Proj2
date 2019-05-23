@@ -7,7 +7,6 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
-import java.math.BigInteger;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,21 +22,26 @@ import bftsmart.tom.ServiceReplica;
 import bftsmart.tom.server.defaultservices.DefaultRecoverable;
 import rest.entities.AtomicTransferRequest;
 import rest.entities.BalanceRequest;
+import rest.entities.CompareRequest;
+import rest.entities.CondUpdRequest;
 import rest.entities.CreateRequest;
 import rest.entities.GetBetweenRequest;
 import rest.entities.GetRequest;
 import rest.entities.LedgerRequest;
+import rest.entities.SetRequest;
+import rest.entities.SumRequest;
 import rest.entities.TransferRequest;
-import secureModule.AddRequest;
-import utils.Serializor;
 import wallet.ByzantineWallet;
+import wallet.ConditionalOperation;
 import wallet.DataType;
 import wallet.GetBetweenOP;
 import wallet.SimpleWallet;
 import wallet.Transaction;
+import wallet.UpdOp;
 import wallet.Wallet;
 import wallet.exceptions.InvalidAddressException;
 import wallet.exceptions.InvalidAmountException;
+import wallet.exceptions.InvalidOperationException;
 import wallet.exceptions.InvalidSignatureException;
 import wallet.exceptions.InvalidTypeException;
 import wallet.exceptions.NotEnoughMoneyException;
@@ -255,362 +259,34 @@ public class BFTWalletServer extends DefaultRecoverable {
 				}
 
 				break;
-			case PUT_OPI:
-				String id = objIn.readUTF();
-				Long value = objIn.readLong();
-
-				op_hash = PutOrderPreservingRequest.computeHash(id, value, nonce);
-
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					Boolean result = wallet.putOrderPreservingInt(id, value);
-
-					objOut.writeObject(op_hash);
-					objOut.writeObject(BFTWalletResultType.OK);
-					objOut.writeObject(result);
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") putOPI(" + id + ", " + value + ") : " + "OK ->" + result);
-				}
+			case CREATE:
+				cached = create(objIn, nonce, byteOut, objOut);
+				hasReply = true;
 				break;
-			case GET_OPI:
-				id = objIn.readUTF();
-
-				op_hash = GetOrderPreservingRequest.computeHash(id, nonce);
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					String result = "";
-					try {
-						objOut.writeObject(op_hash);
-						value = wallet.getOrderPreservingInt(id);
-
-						result = "OK -> " + value;
-
-						objOut.writeObject(BFTWalletResultType.OK);
-						objOut.writeObject(value);
-					} catch (InvalidAddressException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
-					}
-
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") getOPI(" + id + ") : " + result);
-				}
+			case GET:
+				cached = get(objIn, nonce, byteOut, objOut);
+				hasReply = true;
 				break;
-			case GET_BETWEEN_OPI:
-				String k1 = objIn.readUTF();
-				String k2 = objIn.readUTF();
-
-				op_hash = GetBetweenOrderPreservingRequest.computeHash(k1, k2, nonce);
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					String result = "";
-					try {
-						objOut.writeObject(op_hash);
-						List<Entry<String, Long>> values = wallet.getBetweenKeysOPI(k1, k2);
-
-						result = "OK -> " + values.size();
-
-						objOut.writeObject(BFTWalletResultType.OK);
-						objOut.writeObject(Serializor.serializeList(values));
-					} catch (InvalidAddressException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
-					}
-
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") getBetweenOPI(" + k1 + ", " + k2 + ") : " + result);
-				}
+			case GET_BETWEEN:
+				cached = getBetween(objIn, nonce, byteOut, objOut);
+				hasReply = true;
 				break;
-			case PUT_SUM:
-				id = objIn.readUTF();
-				BigInteger bigI = (BigInteger) objIn.readObject();
-
-				op_hash = PutSumRequest.computeHash(id, bigI, nonce);
-
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					Boolean result = wallet.putSumInt(id, bigI);
-
-					objOut.writeObject(op_hash);
-					objOut.writeObject(BFTWalletResultType.OK);
-					objOut.writeObject(result);
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") putSum(" + id + ", " + bigI + ") : " + "OK -> " + result);
-				}
+			case SET:
+				cached = set(objIn, nonce, byteOut, objOut);
+				hasReply = true;
 				break;
-			case GET_SUM:
-				id = objIn.readUTF();
-
-				op_hash = GetSumRequest.computeHash(id, nonce);
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					String result = "";
-					try {
-						objOut.writeObject(op_hash);
-						BigInteger ret = wallet.getSumInt(id);
-
-						result = "OK -> " + ret;
-
-						objOut.writeObject(BFTWalletResultType.OK);
-						objOut.writeObject(ret);
-					} catch (InvalidAddressException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
-					}
-
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") getSum(" + id + ") : " + result);
-				}
-				break;
-			case ADD_SUM:
-				id = objIn.readUTF();
-				BigInteger big_amount = (BigInteger) objIn.readObject();
-				BigInteger nSquare = (BigInteger) objIn.readObject();
-
-				op_hash = AddSumRequest.computeHash(id, big_amount, nSquare, nonce);
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					String result = "";
-					try {
-						objOut.writeObject(op_hash);
-						BigInteger ret = wallet.add_sumInt(id, big_amount, nSquare);
-
-						result = "OK -> " + ret;
-
-						objOut.writeObject(BFTWalletResultType.OK);
-						objOut.writeObject(ret);
-					} catch (InvalidAddressException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
-					}
-
-					hasReply = true;
-
-					System.out.println(
-							"(" + iterations + ") add(" + id + ", " + big_amount + ", " + nSquare + ") : " + result);
-				}
-				break;
-			case DIF:
-				id = objIn.readUTF();
-				big_amount = (BigInteger) objIn.readObject();
-				nSquare = (BigInteger) objIn.readObject();
-
-				op_hash = AddSumRequest.computeHash(id, big_amount, nSquare, nonce);
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					String result = "";
-					try {
-						objOut.writeObject(op_hash);
-						BigInteger ret = wallet.sub(id, big_amount, nSquare);
-
-						result = "OK -> " + ret;
-
-						objOut.writeObject(BFTWalletResultType.OK);
-						objOut.writeObject(ret);
-					} catch (InvalidAddressException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
-					}
-
-					hasReply = true;
-
-					System.out.println(
-							"(" + iterations + ") sub(" + id + ", " + big_amount + ", " + nSquare + ") : " + result);
-				}
-				break;
-			case COND_SET:
-				String cond_key = objIn.readUTF();
-				String cond_key_type = objIn.readUTF();
-				String cond_val = objIn.readUTF();
-				String cond_cipheredKey = objIn.readUTF();
-				String upd_key = objIn.readUTF();
-				String upd_key_type = objIn.readUTF();
-				String upd_val = objIn.readUTF();
-
-				op_hash = CondSetRequest.computeHash(cond_key, cond_key_type, cond_val, cond_cipheredKey, upd_key,
-						upd_key_type, upd_val, nonce);
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					String result = "";
-					try {
-						objOut.writeObject(op_hash);
-						Boolean ret = wallet.cond_set(cond_key, cond_key_type, cond_val, cond_cipheredKey, upd_key,
-								upd_key_type, upd_val);
-
-						result = "OK -> " + ret;
-
-						objOut.writeObject(BFTWalletResultType.OK);
-						objOut.writeObject(ret);
-					} catch (InvalidAddressException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
-					} catch (InvalidTypeException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_TYPE);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_TYPE;
-					}
-
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") cond_set(" + cond_key_type + " " + cond_key + " >= "
-							+ cond_val + " (" + cond_cipheredKey + ")" + " then " + upd_key_type + " " + upd_key + " = "
-							+ upd_val + ") : " + result);
-				}
-				break;
-			case COND_ADD:
-				cond_key = objIn.readUTF();
-				cond_key_type = objIn.readUTF();
-				cond_val = objIn.readUTF();
-				cond_cipheredKey = objIn.readUTF();
-				upd_key = objIn.readUTF();
-				upd_key_type = objIn.readUTF();
-				upd_val = objIn.readUTF();
-				String upd_auxArg = objIn.readUTF();
-
-				op_hash = CondAddRequest.computeHash(cond_key, cond_key_type, cond_val, cond_cipheredKey, upd_key,
-						upd_key_type, upd_val, upd_auxArg, nonce);
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					String result = "";
-					try {
-						objOut.writeObject(op_hash);
-						Boolean ret = wallet.cond_add(cond_key, cond_key_type, cond_val, cond_cipheredKey, upd_key,
-								upd_key_type, upd_val, upd_auxArg);
-
-						result = "OK -> " + ret;
-
-						objOut.writeObject(BFTWalletResultType.OK);
-						objOut.writeObject(ret);
-					} catch (InvalidAddressException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
-					} catch (InvalidTypeException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_TYPE);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_TYPE;
-					}
-
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") cond_add(" + cond_key_type + " " + cond_key + " >= "
-							+ cond_val + " (" + cond_cipheredKey + ")" + " then " + upd_key_type + " " + upd_key + " = "
-							+ upd_val + " (" + upd_auxArg + ") " + ") : " + result);
-				}
-				break;
-			case ADD:
-				String key = objIn.readUTF();
-				String key_type = objIn.readUTF();
-				String add_value = objIn.readUTF();
-				String auxArg = objIn.readUTF();
-
-				op_hash = AddRequest.computeHash(id, key_type, add_value, auxArg, nonce);
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					String result = "";
-					try {
-						objOut.writeObject(op_hash);
-						String ret = wallet.add(id, key_type, add_value, auxArg);
-
-						result = "OK -> " + ret;
-
-						objOut.writeObject(BFTWalletResultType.OK);
-						objOut.writeObject(ret);
-					} catch (InvalidAddressException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
-					} catch (InvalidTypeException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_TYPE);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_TYPE;
-					}
-
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") add(" + key_type + ", " + id + ", " + val + ", " + auxArg + ") : " + result);
-				}
+			case SUM:
+				cached = sum(objIn, nonce, byteOut, objOut);
+				hasReply = true;
 				break;
 			case COMPARE:
-				id = objIn.readUTF();
-				key_type = objIn.readUTF();
-				add_value = objIn.readUTF();
-				String cipheredKey = objIn.readUTF();
-
-				op_hash = AddRequest.computeHash(id, key_type, add_value, cipheredKey, nonce);
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					String result = "";
-					try {
-						objOut.writeObject(op_hash);
-						int ret = wallet.compare(id, key_type, add_value, cipheredKey);
-
-						result = "OK -> " + ret;
-
-						objOut.writeObject(BFTWalletResultType.OK);
-						objOut.writeObject(ret);
-					} catch (InvalidAddressException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
-					} catch (InvalidTypeException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_TYPE);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_TYPE;
-					}
-
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") add(" + key_type + ", " + id + ", " + val + ", " + cipheredKey + ") : " + result);
-				}
+				cached = compare(objIn, nonce, byteOut, objOut);
+				hasReply = true;
 				break;
-
+			case COND_UPD:
+				cached = cond_upd(objIn, nonce, byteOut, objOut);
+				hasReply = true;
+				break;
 			}
 
 			if (cached) {
@@ -689,131 +365,19 @@ public class BFTWalletServer extends DefaultRecoverable {
 				}
 
 				break;
-			case GET_OPI:
-				String id = objIn.readUTF();
-
-				op_hash = GetOrderPreservingRequest.computeHash(id, nonce);
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					String result = "";
-					try {
-						objOut.writeObject(op_hash);
-						long value = wallet.getOrderPreservingInt(id);
-
-						result = "OK -> " + value;
-
-						objOut.writeObject(BFTWalletResultType.OK);
-						objOut.writeObject(value);
-					} catch (InvalidAddressException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
-					}
-
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") getOPI(" + id + ") : " + result);
-				}
+			case GET:
+				cached = get(objIn, nonce, byteOut, objOut);
+				hasReply = true;
 				break;
-			case GET_BETWEEN_OPI:
-				String k1 = objIn.readUTF();
-				String k2 = objIn.readUTF();
-
-				op_hash = GetBetweenOrderPreservingRequest.computeHash(k1, k2, nonce);
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					String result = "";
-					try {
-						objOut.writeObject(op_hash);
-						List<Entry<String, Long>> values = wallet.getBetweenKeysOPI(k1, k2);
-
-						result = "OK -> " + values.size();
-
-						objOut.writeObject(BFTWalletResultType.OK);
-						objOut.writeObject(Serializor.serializeList(values));
-					} catch (InvalidAddressException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
-					}
-
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") getBetweenOPI(" + k1 + ", " + k2 + ") : " + result);
-				}
-				break;
-			case GET_SUM:
-				id = objIn.readUTF();
-
-				op_hash = GetSumRequest.computeHash(id, nonce);
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					String result = "";
-					try {
-						objOut.writeObject(op_hash);
-						BigInteger ret = wallet.getSumInt(id);
-
-						result = "OK -> " + ret;
-
-						objOut.writeObject(BFTWalletResultType.OK);
-						objOut.writeObject(ret);
-					} catch (InvalidAddressException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
-					}
-
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") getSum(" + id + ") : " + result);
-				}
+			case GET_BETWEEN:
+				cached = getBetween(objIn, nonce, byteOut, objOut);
+				hasReply = true;
 				break;
 			case COMPARE:
-				String key = objIn.readUTF();
-				String key_type = objIn.readUTF();
-				String add_value = objIn.readUTF();
-				String cipheredKey = objIn.readUTF();
-
-				op_hash = AddRequest.computeHash(id, key_type, add_value, cipheredKey, nonce);
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					String result = "";
-					try {
-						objOut.writeObject(op_hash);
-						int ret = wallet.compare(id, key_type, add_value, cipheredKey);
-
-						result = "OK -> " + ret;
-
-						objOut.writeObject(BFTWalletResultType.OK);
-						objOut.writeObject(ret);
-					} catch (InvalidAddressException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
-					} catch (InvalidTypeException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_TYPE);
-						objOut.writeObject(e.getMessage());
-
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_TYPE;
-					}
-
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") add(" + key_type + ", " + id + ", " + val + ", " + cipheredKey + ") : " + result);
-				}
+				cached = compare(objIn, nonce, byteOut, objOut);
+				hasReply = true;
 				break;
+
 
 			default:
 				logger.log(Level.WARNING, "in appExecuteUnordered only read operations are supported");
@@ -956,6 +520,188 @@ public class BFTWalletServer extends DefaultRecoverable {
 			objOut.writeObject(ret);
 
 			System.out.println("(" + iterations + ") getBetween(" + ops.size() + ") : " + result);
+
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	private boolean set(ObjectInput objIn, long nonce, ByteArrayOutputStream byteOut, ObjectOutput objOut) throws IOException, ClassNotFoundException {
+
+		DataType type = DataType.valueOf(objIn.readUTF());
+		String id = objIn.readUTF();
+		String value = objIn.readUTF();
+
+		String op_hash = SetRequest.computeHash(type, id, value, nonce);
+		byte[] val = chechResults(op_hash);
+		boolean cached = (val != null);
+
+		if (!cached) {
+			objOut.writeObject(op_hash);
+
+			String result;
+			try {
+				Boolean ret = wallet.set(type, id, value);
+
+				result = "OK -> " + ret;
+
+				objOut.writeObject(BFTWalletResultType.OK);
+				objOut.writeObject(ret);
+			} catch (InvalidTypeException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_TYPE);
+				objOut.writeObject(e.getMessage());
+
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_TYPE;
+			} catch (InvalidAddressException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
+				objOut.writeObject(e.getMessage());
+
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
+			}
+
+			System.out.println("(" + iterations + ") set(" + type + ", " + id + ", " + value + ") : " + result);
+
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	private boolean sum(ObjectInput objIn, long nonce, ByteArrayOutputStream byteOut, ObjectOutput objOut) throws IOException, ClassNotFoundException {
+
+		DataType type = DataType.valueOf(objIn.readUTF());
+		String id = objIn.readUTF();
+		String amount = objIn.readUTF();
+		String arg = objIn.readUTF();
+
+		String op_hash = SumRequest.computeHash(type, id, amount, arg, nonce);
+		byte[] val = chechResults(op_hash);
+		boolean cached = (val != null);
+
+		if (!cached) {
+			objOut.writeObject(op_hash);
+
+			String result;
+			try {
+				String ret = wallet.sum(type, id, amount, arg);
+
+				result = "OK -> " + ret;
+
+				objOut.writeObject(BFTWalletResultType.OK);
+				objOut.writeObject(ret);
+			} catch (InvalidTypeException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_TYPE);
+				objOut.writeObject(e.getMessage());
+
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_TYPE;
+			} catch (InvalidAddressException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
+				objOut.writeObject(e.getMessage());
+
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
+			}
+
+			System.out.println("(" + iterations + ") set(" + type + ", " + id + ", " + amount + ", " + arg + ") : " + result);
+
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	private boolean compare(ObjectInput objIn, long nonce, ByteArrayOutputStream byteOut, ObjectOutput objOut) throws IOException, ClassNotFoundException {
+
+		DataType cond_type = DataType.valueOf(objIn.readUTF());
+		String cond_id = objIn.readUTF();
+		ConditionalOperation cond = ConditionalOperation.valueOf(objIn.readUTF());
+		String cond_val = objIn.readUTF();
+		String cipheredKey = objIn.readUTF();
+
+		String op_hash = CompareRequest.computeHash(cond_type, cond_id, cond, cond_val, cipheredKey, nonce);
+		byte[] val = chechResults(op_hash);
+		boolean cached = (val != null);
+
+		if (!cached) {
+			objOut.writeObject(op_hash);
+
+			String result;
+			try {
+				boolean ret = wallet.compare(cond_type, cond_id, cond, cond_val, cipheredKey);
+
+				result = "OK -> " + ret;
+
+				objOut.writeObject(BFTWalletResultType.OK);
+				objOut.writeObject(ret);
+			} catch (InvalidTypeException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_TYPE);
+				objOut.writeObject(e.getMessage());
+
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_TYPE;
+			} catch (InvalidAddressException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
+				objOut.writeObject(e.getMessage());
+
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
+			} catch (InvalidOperationException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_OPERATION);
+				objOut.writeObject(e.getMessage());
+
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_OPERATION;
+			}
+
+			System.out.println("(" + iterations + ") compare(" + cond_type + ", " + cond_id + ", " + cond + ", " + cond_val + ", " + cipheredKey + ") : " + result);
+
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private boolean cond_upd(ObjectInput objIn, long nonce, ByteArrayOutputStream byteOut, ObjectOutput objOut) throws IOException, ClassNotFoundException {
+
+		DataType cond_type = DataType.valueOf(objIn.readUTF());
+		String cond_id = objIn.readUTF();
+		ConditionalOperation cond = ConditionalOperation.valueOf(objIn.readUTF());
+		String cond_val = objIn.readUTF();
+		String cipheredKey = objIn.readUTF();
+		ArrayList<UpdOp> ops = (ArrayList<UpdOp>) objIn.readObject();
+
+
+		String op_hash = CondUpdRequest.computeHash(cond_type, cond_id, cond, cond_val, cipheredKey, ops, nonce);
+		byte[] val = chechResults(op_hash);
+		boolean cached = (val != null);
+
+		if (!cached) {
+			objOut.writeObject(op_hash);
+
+			String result;
+			try {
+				boolean ret = wallet.cond_upd(cond_type, cond_id, cond, cond_val, cipheredKey, ops);
+
+				result = "OK -> " + ret;
+
+				objOut.writeObject(BFTWalletResultType.OK);
+				objOut.writeObject(ret);
+			} catch (InvalidTypeException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_TYPE);
+				objOut.writeObject(e.getMessage());
+
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_TYPE;
+			} catch (InvalidAddressException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
+				objOut.writeObject(e.getMessage());
+
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
+			} catch (InvalidOperationException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_OPERATION);
+				objOut.writeObject(e.getMessage());
+
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_OPERATION;
+			}
+
+			System.out.println("(" + iterations + ") cond_upd(" + cond_type + ", " + cond_id + ", " + cond + ", " + cond_val + ", " + cipheredKey + ") : " + result);
 
 			return false;
 		} else {

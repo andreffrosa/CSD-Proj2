@@ -236,9 +236,9 @@ public class WalletClient implements WalletAPI {
 			break;
 		case HOMO_OPE_INT:
 			long key = HomoOpeInt.generateKey();
-			HomoOpeInt ope = new HomoOpeInt(id);
+			HomoOpeInt ope = new HomoOpeInt(key);
 
-			homo_ope_int_variables.put(id, id);
+			homo_ope_int_variables.put(id, key);
 
 			encrypted_value = ((Long)ope.encrypt(initial_value)).toString();
 			break;
@@ -266,7 +266,7 @@ public class WalletClient implements WalletAPI {
 			if(current_id.startsWith(id_prefix)) {
 				DataType type = DataType.HOMO_OPE_INT;
 				String key = getKey(type, current_id);
-				ops.add(new GetBetweenOP(type, current_id, encryptValue(type, id, lower_value), encryptValue(type, id, higher_value), encryptKey(type, id)));
+				ops.add(new GetBetweenOP(type, current_id, encryptValue(type, key, lower_value), encryptValue(type, key, higher_value), encryptKey(type, key)));
 			}
 		}
 
@@ -275,7 +275,7 @@ public class WalletClient implements WalletAPI {
 			if(current_id.startsWith(id_prefix)) {
 				DataType type = DataType.HOMO_ADD;
 				String key = getKey(type, current_id);
-				ops.add(new GetBetweenOP(type, current_id, encryptValue(type, id, lower_value), encryptValue(type, id, higher_value), encryptKey(type, id)));
+				ops.add(new GetBetweenOP(type, current_id, encryptValue(type, key, lower_value), encryptValue(type, key, higher_value), encryptKey(type, key)));
 			}
 		}
 
@@ -298,16 +298,16 @@ public class WalletClient implements WalletAPI {
 	public int sum(DataType type, String id, int value) throws InvalidAddressException, InvalidTypeException {
 		String key = getKey(type, id);
 
-		String result = wallet.sum(type, id, encryptValue(type, id, value), getAuxArg(type, id));
+		String result = wallet.sum(type, id, encryptValue(type, key, value), getAuxArg(type, id));
 
-		return decryptValue(type, id, result);
+		return decryptValue(type, key, result);
 	}
 
 	@Override
 	public boolean compare(DataType type, String id, ConditionalOperation op, int value) throws InvalidAddressException, InvalidTypeException, InvalidOperationException {
 		String key = getKey(type, id);
 
-		return wallet.compare(type, id, op, encryptValue(type, id, value), encryptKey(type, id));
+		return wallet.compare(type, id, op, encryptValue(type, key, value), encryptKey(type, key));
 	}
 
 	@Override
@@ -350,10 +350,10 @@ public class WalletClient implements WalletAPI {
 		byte[] rawCipheredKey;
 		switch(type) {
 		case HOMO_ADD:
-			rawCipheredKey = Cryptography.encrypt(secureModule_ks, id.getBytes(), SecureModuleImpl.CIPHER_ALGORITHM);
+			rawCipheredKey = Cryptography.encrypt(secureModule_ks, key.getBytes(), SecureModuleImpl.CIPHER_ALGORITHM);
 			return java.util.Base64.getEncoder().encodeToString(rawCipheredKey);
 		case HOMO_OPE_INT:
-			rawCipheredKey = Cryptography.encrypt(secureModule_ks, id.getBytes(), SecureModuleImpl.CIPHER_ALGORITHM);
+			rawCipheredKey = Cryptography.encrypt(secureModule_ks, key.getBytes(), SecureModuleImpl.CIPHER_ALGORITHM);
 			return java.util.Base64.getEncoder().encodeToString(rawCipheredKey);
 		case WALLET:
 			return "";
@@ -392,7 +392,7 @@ public class WalletClient implements WalletAPI {
 
 		switch(type) {
 		case HOMO_ADD:
-			PaillierKey pk = HomoAdd.keyFromString(id);
+			PaillierKey pk = HomoAdd.keyFromString(key);
 
 			try {
 				return HomoAdd.encrypt(new BigInteger("" + value), pk).toString();
@@ -400,7 +400,7 @@ public class WalletClient implements WalletAPI {
 				throw new RuntimeException(e);
 			}
 		case HOMO_OPE_INT:
-			Long opi_key = Long.parseLong(id);
+			Long opi_key = Long.parseLong(key);
 
 			HomoOpeInt ope = new HomoOpeInt(opi_key);
 
@@ -417,7 +417,7 @@ public class WalletClient implements WalletAPI {
 
 		switch(type) {
 		case HOMO_ADD:
-			PaillierKey pk = HomoAdd.keyFromString(id);
+			PaillierKey pk = HomoAdd.keyFromString(key);
 
 			try {
 				return HomoAdd.decrypt(new BigInteger("" + encrypted_value), pk).intValue();
@@ -425,7 +425,7 @@ public class WalletClient implements WalletAPI {
 				throw new RuntimeException(e);
 			}
 		case HOMO_OPE_INT:
-			Long opi_key = Long.parseLong(id);
+			Long opi_key = Long.parseLong(key);
 
 			HomoOpeInt ope = new HomoOpeInt(opi_key);
 

@@ -354,9 +354,9 @@ public class RESTWalletClient implements Wallet {
 	}
 
 	@Override
-	public String sum(DataType key_type, String key, String amount, String arg) throws InvalidAddressException, InvalidTypeException {
+	public String sum(DataType id_type, String id, String amount, String arg) throws InvalidAddressException, InvalidTypeException {
 		
-		SumRequest request = new SumRequest(key_type, id, amount, arg);
+		SumRequest request = new SumRequest(id_type, id, amount, arg);
 
 		BFTReply reply = processRequest((location) -> {
 			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.SUM_PATH)

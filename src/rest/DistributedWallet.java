@@ -83,7 +83,7 @@ public interface DistributedWallet {
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
 	public byte[] sum(String request) throws InvalidAddressException, InvalidTypeException;
 
-	static final String COMPARE_PATH = "/sum";
+	static final String COMPARE_PATH = "/compare";
 	@POST
 	@Path(COMPARE_PATH)
 	@Consumes(MediaType.APPLICATION_JSON)

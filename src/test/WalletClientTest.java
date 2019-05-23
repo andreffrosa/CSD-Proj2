@@ -3,6 +3,7 @@ package test;
 import java.util.LinkedList;
 import java.util.List;
 
+import utils.IO;
 import wallet.ConditionalOperation;
 import wallet.DataType;
 import wallet.UpdOp;
@@ -11,9 +12,11 @@ import wallet.client.WalletClient;
 
 public class WalletClientTest {
 
+	private static final String[] servers = (String[]) IO.loadObject("./servers.json", String[].class);
+	
 	public static void main(String[] args) throws Exception {
 		
-		WalletClient myWallet = new WalletClient(null);
+		WalletClient myWallet = new WalletClient(servers);
 		
 		myWallet.create(DataType.WALLET, "WALLET-1", 100);
 		myWallet.create(DataType.WALLET, "WALLET-2", 100);

@@ -1,6 +1,7 @@
 package wallet;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -177,9 +178,9 @@ public class SimpleWallet implements Wallet {
 
 	@Override
 	public List<String> getBetween(List<GetBetweenOP> ops) {
-		List<String> ids = new LinkedList<>();
+		List<String> ids = new ArrayList<>();
 
-		List<GetBetweenOP> homo_add_list = new LinkedList<>();
+		List<GetBetweenOP> homo_add_list = new ArrayList<>();
 		Map<String, BigInteger> aux_homo_add_vars = new HashMap<>();
 		
 		for(GetBetweenOP op : ops) {
@@ -211,9 +212,13 @@ public class SimpleWallet implements Wallet {
 			}
 		}
 		
+		System.out.println("ola");
+		
 		if(homo_add_list.size() > 0) {
 			ids.addAll(secureModule.getBetweenHomoAdd(aux_homo_add_vars, homo_add_list));
 		}
+		
+		System.out.println("adeus");
 
 		return ids;
 	}

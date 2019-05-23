@@ -7,8 +7,11 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.gson.GsonBuilder;
+
 import bft.reply.ReplyExtractor;
 import bftsmart.tom.ServiceProxy;
+import utils.Serializor;
 import wallet.ConditionalOperation;
 import wallet.DataType;
 import wallet.GetBetweenOP;
@@ -147,13 +150,13 @@ public class BFTWalletClient {
 		}
 	}
 
-	public byte[] getBetween(ArrayList<GetBetweenOP> ops, long nonce) {
+	public byte[] getBetween(List<GetBetweenOP> ops, long nonce) {
 		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
 
 			objOut.writeObject(BFTWalletRequestType.GET_BETWEEN);
 			objOut.writeLong(nonce);
-			objOut.writeObject(ops);
+			objOut.writeObject(Serializor.serializeList(ops));
 
 			objOut.flush();
 			byteOut.flush();
@@ -162,6 +165,7 @@ public class BFTWalletClient {
 			
 			return reply;
 		} catch (IOException e) {
+			e.printStackTrace();
 			throw new RuntimeException("Exception getBetween: " + e.getMessage());
 		}
 	}
@@ -233,7 +237,7 @@ public class BFTWalletClient {
 	}
 
 	public byte[] cond_upd(DataType cond_type, String cond_id, ConditionalOperation cond, String cond_val,
-			String cond_cipheredKey, ArrayList<UpdOp> ops, long nonce) {
+			String cond_cipheredKey, List<UpdOp> ops, long nonce) {
 		try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
 				ObjectOutput objOut = new ObjectOutputStream(byteOut);) {
 
@@ -244,7 +248,7 @@ public class BFTWalletClient {
 			objOut.writeUTF(cond.toString());
 			objOut.writeUTF(cond_val);
 			objOut.writeUTF(cond_cipheredKey);
-			objOut.writeObject(ops);
+			objOut.writeUTF(Serializor.serializeList(ops));
 
 			objOut.flush();
 			byteOut.flush();

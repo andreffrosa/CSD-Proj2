@@ -28,7 +28,7 @@ public class Test2 {
 
 		System.out.println("Replica lauched!");
 
-		Thread.sleep(10000);
+		/*Thread.sleep(10000);
 
 		////////////////////////////////////////////////////
 		Wallet wallet = new RESTWalletClient((String[]) IO.loadObject("./servers.json", String[].class));
@@ -39,14 +39,14 @@ public class Test2 {
 
 		testOPI(wallet);
 
-		testSum(wallet);
+		testSum(wallet);*/
 
 		/////////////////////////////////////////////////////
 
-		replica.stop(id);
+		//replica.stop(id);
 	}
 
-	private static void testSum(Wallet wallet) {
+	/*private static void testSum(Wallet wallet) {
 		try {
 			PaillierKey pk = HomoAdd.generateKey();
 
@@ -112,5 +112,5 @@ public class Test2 {
 		for(Entry<String, Long> e : between) {
 			System.out.println(e.getKey() + " = " + e.getValue() + "(" + ope.decrypt(e.getValue()) + ")");
 		}
-	}
+	}*/
 }

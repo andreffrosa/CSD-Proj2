@@ -1,7 +1,14 @@
 package wallet;
 
-public class GetBetweenOP {
+import java.io.Serializable;
 
+public class GetBetweenOP implements Serializable {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	
 	public DataType type;
 	public String id;
 	public String low_value;

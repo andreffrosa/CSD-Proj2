@@ -21,7 +21,6 @@ import utils.Cryptography;
 import wallet.ConditionalOperation;
 import wallet.DataType;
 import wallet.GetBetweenOP;
-import wallet.SimpleWallet;
 import wallet.Transaction;
 import wallet.UpdOp;
 import wallet.Wallet;
@@ -63,9 +62,7 @@ public class WalletClient implements WalletAPI {
 		homo_ope_int_variables = new HashMap<>(DEFAULT_SIZE);
 		homo_add_variables = new HashMap<>(DEFAULT_SIZE);
 
-		// TODO: temp
-		//wallet = new RESTWalletClient(servers);
-		wallet = new SimpleWallet();
+		wallet = new RESTWalletClient(servers);
 	}
 
 	public String generateNewAddress() {
@@ -328,7 +325,8 @@ public class WalletClient implements WalletAPI {
 
 	private String getAuxArg(DataType type, String id) throws InvalidAddressException {
 
-		if(type == DataType.HOMO_ADD) {
+		switch(type) {
+		case HOMO_ADD:
 			PaillierKey pk = homo_add_variables.get(id);
 
 			if(pk == null) {
@@ -336,9 +334,9 @@ public class WalletClient implements WalletAPI {
 			}
 
 			return pk.getNsquare().toString();
-		} else if(type == DataType.HOMO_OPE_INT) {
+		case HOMO_OPE_INT:
 			return encryptKey(type, getKey(type, id));
-		} else if(type == DataType.HOMO_ADD) {
+		case WALLET:
 			return "";
 		}
 

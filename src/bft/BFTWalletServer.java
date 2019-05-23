@@ -16,6 +16,8 @@ import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.google.gson.GsonBuilder;
+
 import bft.reply.BFTWalletResultType;
 import bftsmart.tom.MessageContext;
 import bftsmart.tom.ServiceReplica;
@@ -31,6 +33,7 @@ import rest.entities.LedgerRequest;
 import rest.entities.SetRequest;
 import rest.entities.SumRequest;
 import rest.entities.TransferRequest;
+import utils.Serializor;
 import wallet.ByzantineWallet;
 import wallet.ConditionalOperation;
 import wallet.DataType;
@@ -133,131 +136,20 @@ public class BFTWalletServer extends DefaultRecoverable {
 
 			switch (reqType) {
 			case TRANSFER_MONEY:
-				String from = objIn.readUTF();
-				String to = objIn.readUTF();
-				double amount = objIn.readDouble();
-				String signature = objIn.readUTF();
-
-				op_hash = TransferRequest.computeHash(signature, nonce);
-
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-					String result = "";
-
-					try {
-						objOut.writeObject(op_hash);
-						boolean status = wallet.transfer(new Transaction(from, to, amount, signature, true));
-
-						objOut.writeObject(BFTWalletResultType.OK);
-						objOut.writeObject(new Boolean(status));
-						result = "OK -> " + status;
-						// objOut.writeBoolean(result);
-					} catch (InvalidAddressException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-						objOut.writeObject(e.getMessage());
-						// objOut.writeUTF(e.getMessage());
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
-					} catch (InvalidAmountException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_AMOUNT);
-						objOut.writeObject(e.getMessage());
-						// objOut.writeUTF(e.getMessage());
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_AMOUNT;
-					} catch (InvalidSignatureException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_SIGNATURE);
-						objOut.writeObject(e.getMessage());
-						// objOut.writeUTF(e.getMessage());
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_SIGNATURE;
-					} catch (NotEnoughMoneyException e) {
-						objOut.writeObject(BFTWalletResultType.NOT_ENOUGH_MONEY);
-						objOut.writeObject(e.getMessage());
-						// objOut.writeUTF(e.getMessage());
-						result = "EXCEPTION -> " + BFTWalletResultType.NOT_ENOUGH_MONEY;
-					}
-
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") transfer(" + from + ", " + to + ", " + amount + ", "
-							+ nonce + ", " + signature + ") : " + result);
-				}
-
+				cached = transfer(objIn, nonce, byteOut, objOut);
+				hasReply = true;
 				break;
 			case ATOMIC_TRANSFER_MONEY:
-				@SuppressWarnings("unchecked")
-				List<Transaction> transactions = (List<Transaction>) objIn.readObject();
-
-				op_hash = AtomicTransferRequest.computeHash(transactions, nonce);
-
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					String result = "";
-					try {
-						objOut.writeObject(op_hash);
-						boolean status = wallet.atomicTransfer(transactions);
-
-						objOut.writeObject(BFTWalletResultType.OK);
-						objOut.writeObject(status);
-						result = "OK -> " + status;
-					} catch (InvalidAddressException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
-						objOut.writeObject(e.getMessage());
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
-					} catch (InvalidAmountException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_AMOUNT);
-						objOut.writeObject(e.getMessage());
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_AMOUNT;
-					} catch (InvalidSignatureException e) {
-						objOut.writeObject(BFTWalletResultType.INVALID_SIGNATURE);
-						objOut.writeObject(e.getMessage());
-						result = "EXCEPTION -> " + BFTWalletResultType.INVALID_SIGNATURE;
-					} catch (NotEnoughMoneyException e) {
-						objOut.writeObject(BFTWalletResultType.NOT_ENOUGH_MONEY);
-						objOut.writeObject(e.getMessage());
-						result = "EXCEPTION -> " + BFTWalletResultType.NOT_ENOUGH_MONEY;
-					}
-
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") atomicTransfer(...) : " + result);
-				}
-
+				cached = atomicTransfer(objIn, nonce, byteOut, objOut);
+				hasReply = true;
 				break;
 			case CURRENT_BALANCE:
-				String who = objIn.readUTF();
-
-				op_hash = BalanceRequest.computeHash(who, nonce);
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					double balance = wallet.balance(who);
-
-					objOut.writeObject(op_hash);
-					objOut.writeObject(BFTWalletResultType.OK);
-					objOut.writeObject(balance);
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") balance(" + who + ") : " + "OK ->" + balance);
-				}
-
+				cached = balance(objIn, nonce, byteOut, objOut);
+				hasReply = true;
 				break;
 			case GET_LEDGER:
-				op_hash = LedgerRequest.computeHash(nonce);
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-					Map<String, Double> ledger = wallet.ledger();
-
-					objOut.writeObject(op_hash);
-					objOut.writeObject(BFTWalletResultType.OK);
-					objOut.writeObject(ledger);
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") ledger() : " + "OK ->" + ledger.size());
-				}
-
+				cached = balance(objIn, nonce, byteOut, objOut);
+				hasReply = true;
 				break;
 			case CREATE:
 				cached = create(objIn, nonce, byteOut, objOut);
@@ -331,39 +223,12 @@ public class BFTWalletServer extends DefaultRecoverable {
 
 			switch (reqType) {
 			case CURRENT_BALANCE:
-				String who = objIn.readUTF();
-
-				op_hash = BalanceRequest.computeHash(who, nonce);
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-
-					double balance = wallet.balance(who);
-
-					objOut.writeObject(op_hash);
-					objOut.writeObject(BFTWalletResultType.OK);
-					objOut.writeObject(balance);
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") balance(" + who + ") : " + "OK ->" + balance);
-				}
-
+				cached = balance(objIn, nonce, byteOut, objOut);
+				hasReply = true;
 				break;
 			case GET_LEDGER:
-				op_hash = LedgerRequest.computeHash(nonce);
-				val = chechResults(op_hash);
-				cached = (val != null);
-				if (!cached) {
-					Map<String, Double> ledger = wallet.ledger();
-
-					objOut.writeObject(op_hash);
-					objOut.writeObject(BFTWalletResultType.OK);
-					objOut.writeObject(ledger);
-					hasReply = true;
-
-					System.out.println("(" + iterations + ") ledger() : " + "OK ->" + ledger.size());
-				}
-
+				cached = ledger(objIn, nonce, byteOut, objOut);
+				hasReply = true;
 				break;
 			case GET:
 				cached = get(objIn, nonce, byteOut, objOut);
@@ -377,7 +242,6 @@ public class BFTWalletServer extends DefaultRecoverable {
 				cached = compare(objIn, nonce, byteOut, objOut);
 				hasReply = true;
 				break;
-
 
 			default:
 				logger.log(Level.WARNING, "in appExecuteUnordered only read operations are supported");
@@ -433,6 +297,142 @@ public class BFTWalletServer extends DefaultRecoverable {
 		}
 
 		return replies;
+	}
+
+	private boolean transfer(ObjectInput objIn, long nonce, ByteArrayOutputStream byteOut, ObjectOutput objOut) throws IOException, ClassNotFoundException {
+
+		String from = objIn.readUTF();
+		String to = objIn.readUTF();
+		double amount = objIn.readDouble();
+		String signature = objIn.readUTF();
+
+		String op_hash = TransferRequest.computeHash(signature, nonce);
+
+		byte[] val = chechResults(op_hash);
+		boolean cached = (val != null);
+		if (!cached) {
+			String result = "";
+			try {
+				objOut.writeObject(op_hash);
+				boolean status = wallet.transfer(new Transaction(from, to, amount, signature, true));
+
+				objOut.writeObject(BFTWalletResultType.OK);
+				objOut.writeObject(new Boolean(status));
+
+				result = "OK -> " + status;
+			} catch (InvalidAddressException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
+				objOut.writeObject(e.getMessage());
+
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
+			} catch (InvalidAmountException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_AMOUNT);
+				objOut.writeObject(e.getMessage());
+
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_AMOUNT;
+			} catch (InvalidSignatureException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_SIGNATURE);
+				objOut.writeObject(e.getMessage());
+
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_SIGNATURE;
+			} catch (NotEnoughMoneyException e) {
+				objOut.writeObject(BFTWalletResultType.NOT_ENOUGH_MONEY);
+				objOut.writeObject(e.getMessage());
+
+				result = "EXCEPTION -> " + BFTWalletResultType.NOT_ENOUGH_MONEY;
+			}
+
+			System.out.println("(" + iterations + ") transfer(" + from + ", " + to + ", " + amount + ", "
+					+ nonce + ", " + signature + ") : " + result);
+
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	private boolean atomicTransfer(ObjectInput objIn, long nonce, ByteArrayOutputStream byteOut, ObjectOutput objOut) throws IOException, ClassNotFoundException {
+
+		@SuppressWarnings("unchecked")
+		List<Transaction> transactions = (List<Transaction>) objIn.readObject();
+
+		String op_hash = AtomicTransferRequest.computeHash(transactions, nonce);
+
+		byte[] val = chechResults(op_hash);
+		boolean cached = (val != null);
+		if (!cached) {
+
+			String result = "";
+			try {
+				objOut.writeObject(op_hash);
+				boolean status = wallet.atomicTransfer(transactions);
+
+				objOut.writeObject(BFTWalletResultType.OK);
+				objOut.writeObject(status);
+				result = "OK -> " + status;
+			} catch (InvalidAddressException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_ADDRESS);
+				objOut.writeObject(e.getMessage());
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_ADDRESS;
+			} catch (InvalidAmountException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_AMOUNT);
+				objOut.writeObject(e.getMessage());
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_AMOUNT;
+			} catch (InvalidSignatureException e) {
+				objOut.writeObject(BFTWalletResultType.INVALID_SIGNATURE);
+				objOut.writeObject(e.getMessage());
+				result = "EXCEPTION -> " + BFTWalletResultType.INVALID_SIGNATURE;
+			} catch (NotEnoughMoneyException e) {
+				objOut.writeObject(BFTWalletResultType.NOT_ENOUGH_MONEY);
+				objOut.writeObject(e.getMessage());
+				result = "EXCEPTION -> " + BFTWalletResultType.NOT_ENOUGH_MONEY;
+			}
+
+			System.out.println("(" + iterations + ") atomicTransfer(...) : " + result);
+
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	private boolean balance(ObjectInput objIn, long nonce, ByteArrayOutputStream byteOut, ObjectOutput objOut) throws IOException, ClassNotFoundException {
+		String who = objIn.readUTF();
+
+		String op_hash = BalanceRequest.computeHash(who, nonce);
+		byte[] val = chechResults(op_hash);
+		boolean cached = (val != null);
+		if (!cached) {
+			double balance = wallet.balance(who);
+
+			objOut.writeObject(op_hash);
+			objOut.writeObject(BFTWalletResultType.OK);
+			objOut.writeObject(balance);
+
+			System.out.println("(" + iterations + ") balance(" + who + ") : " + "OK ->" + balance);
+
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	private boolean ledger(ObjectInput objIn, long nonce, ByteArrayOutputStream byteOut, ObjectOutput objOut) throws IOException, ClassNotFoundException {
+		String op_hash = LedgerRequest.computeHash(nonce);
+		byte[] val = chechResults(op_hash);
+		boolean cached = (val != null);
+		if (!cached) {
+			Map<String, Double> ledger = wallet.ledger();
+
+			objOut.writeObject(op_hash);
+			objOut.writeObject(BFTWalletResultType.OK);
+			objOut.writeObject(ledger);
+
+			System.out.println("(" + iterations + ") ledger() : " + "OK ->" + ledger.size());
+			return false;
+		} else {
+			return true;
+		}
 	}
 
 	private boolean create(ObjectInput objIn, long nonce, ByteArrayOutputStream byteOut, ObjectOutput objOut) throws IOException {
@@ -500,10 +500,10 @@ public class BFTWalletServer extends DefaultRecoverable {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	private boolean getBetween(ObjectInput objIn, long nonce, ByteArrayOutputStream byteOut, ObjectOutput objOut) throws IOException, ClassNotFoundException {
 
-		ArrayList<GetBetweenOP> ops = (ArrayList<GetBetweenOP>) objIn.readObject();
+		String json = (String) objIn.readObject();
+		List<GetBetweenOP> ops = Serializor.deserializeList(json, GetBetweenOP.class);
 
 		String op_hash = GetBetweenRequest.computeHash(ops, nonce);
 		byte[] val = chechResults(op_hash);
@@ -569,7 +569,6 @@ public class BFTWalletServer extends DefaultRecoverable {
 	}
 
 	private boolean sum(ObjectInput objIn, long nonce, ByteArrayOutputStream byteOut, ObjectOutput objOut) throws IOException, ClassNotFoundException {
-
 		DataType type = DataType.valueOf(objIn.readUTF());
 		String id = objIn.readUTF();
 		String amount = objIn.readUTF();
@@ -658,7 +657,6 @@ public class BFTWalletServer extends DefaultRecoverable {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	private boolean cond_upd(ObjectInput objIn, long nonce, ByteArrayOutputStream byteOut, ObjectOutput objOut) throws IOException, ClassNotFoundException {
 
 		DataType cond_type = DataType.valueOf(objIn.readUTF());
@@ -666,8 +664,9 @@ public class BFTWalletServer extends DefaultRecoverable {
 		ConditionalOperation cond = ConditionalOperation.valueOf(objIn.readUTF());
 		String cond_val = objIn.readUTF();
 		String cipheredKey = objIn.readUTF();
-		ArrayList<UpdOp> ops = (ArrayList<UpdOp>) objIn.readObject();
-
+		
+		String json = objIn.readUTF();
+		List<UpdOp> ops = Serializor.deserializeList(json, UpdOp.class);
 
 		String op_hash = CondUpdRequest.computeHash(cond_type, cond_id, cond, cond_val, cipheredKey, ops, nonce);
 		byte[] val = chechResults(op_hash);

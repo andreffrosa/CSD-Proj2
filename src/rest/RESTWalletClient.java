@@ -33,6 +33,7 @@ import rest.entities.LedgerRequest;
 import rest.entities.SetRequest;
 import rest.entities.SumRequest;
 import rest.entities.TransferRequest;
+import utils.Serializor;
 import wallet.ConditionalOperation;
 import wallet.DataType;
 import wallet.GetBetweenOP;
@@ -56,8 +57,8 @@ public class RESTWalletClient implements Wallet {
 	private static final String CLIENT_TRUSTSTORE_PWD = "CSD1819";
 
 	private final int MAX_TRIES = 5;
-	private final int CONNECT_TIMEOUT = 35000;
-	private final int READ_TIMEOUT = 30000;
+	private final int CONNECT_TIMEOUT = 55000;
+	private final int READ_TIMEOUT = 50000;
 
 	// Private Variables
 	private Client client;
@@ -251,7 +252,7 @@ public class RESTWalletClient implements Wallet {
 
 	@Override
 	public boolean create(DataType type, String id, String initial_value) {
-		
+
 		CreateRequest request = new CreateRequest(type, id, initial_value);
 
 		BFTReply reply = processRequest((location) -> {
@@ -336,7 +337,7 @@ public class RESTWalletClient implements Wallet {
 			} else
 				throw new RuntimeException("WalletClient set: " + response.getStatus());
 		});
-		
+
 		if (reply.isException()) {
 			String msg = (String) reply.getContent();
 
@@ -355,9 +356,9 @@ public class RESTWalletClient implements Wallet {
 
 	@Override
 	public String sum(DataType id_type, String id, String amount, String arg) throws InvalidAddressException, InvalidTypeException {
-		
-		SumRequest request = new SumRequest(id_type, id, amount, arg);
 
+		SumRequest request = new SumRequest(id_type, id, amount, arg);
+		
 		BFTReply reply = processRequest((location) -> {
 			Response response = client.target(location).path(DistributedWallet.PATH + DistributedWallet.SUM_PATH)
 					.request()
@@ -369,7 +370,7 @@ public class RESTWalletClient implements Wallet {
 			} else
 				throw new RuntimeException("WalletClient sum: " + response.getStatus());
 		});
-		
+
 		if (reply.isException()) {
 			String msg = (String) reply.getContent();
 
@@ -389,7 +390,7 @@ public class RESTWalletClient implements Wallet {
 	@Override
 	public boolean compare(DataType cond_type, String cond_id, ConditionalOperation cond, String cond_val,
 			String cipheredKey) throws InvalidAddressException, InvalidTypeException, InvalidOperationException {
-		
+
 		CompareRequest request = new CompareRequest(cond_type, cond_id, cond, cond_val, cipheredKey);
 
 		BFTReply reply = processRequest((location) -> {
@@ -403,7 +404,7 @@ public class RESTWalletClient implements Wallet {
 			} else
 				throw new RuntimeException("WalletClient compare: " + response.getStatus());
 		});
-		
+
 		if (reply.isException()) {
 			String msg = (String) reply.getContent();
 
@@ -425,8 +426,8 @@ public class RESTWalletClient implements Wallet {
 	@Override
 	public boolean cond_upd(DataType cond_type, String cond_id, ConditionalOperation cond, String cond_val,
 			String cond_cipheredKey, List<UpdOp> ops)
-			throws InvalidAddressException, InvalidTypeException, InvalidOperationException {
-		
+					throws InvalidAddressException, InvalidTypeException, InvalidOperationException {
+
 		CondUpdRequest request = new CondUpdRequest(cond_type, cond_id, cond, cond_val, cond_cipheredKey, ops);
 
 		BFTReply reply = processRequest((location) -> {
@@ -440,7 +441,7 @@ public class RESTWalletClient implements Wallet {
 			} else
 				throw new RuntimeException("WalletClient cond_upd: " + response.getStatus());
 		});
-		
+
 		if (reply.isException()) {
 			String msg = (String) reply.getContent();
 

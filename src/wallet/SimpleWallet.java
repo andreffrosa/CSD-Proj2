@@ -184,50 +184,32 @@ public class SimpleWallet implements Wallet {
 		List<String> ids = new LinkedList<>();
 
 		List<GetBetweenOP> homo_add_list = new LinkedList<>();
-
 		Map<String, BigInteger> aux_homo_add_vars = new HashMap<>();
 		
 		for(GetBetweenOP op : ops) {
 			switch(op.type) {
 			case HOMO_ADD:
-				for( Entry<String, BigInteger> e : homo_add_variables.entrySet() ) {
-					String id = e.getKey();
-					BigInteger encrypted_value = e.getValue();
-
-					if(id.startsWith(op.prefix)) {
-						aux_homo_add_vars.put(id, encrypted_value);
-					}
-				}
+				aux_homo_add_vars.put(op.id, this.homo_add_variables.get(op.id));
 				homo_add_list.add(op);
 				break;
 			case HOMO_OPE_INT:
-				for( Entry<String, Long> e : homo_ope_int_variables.entrySet() ) {
-					String id = e.getKey();
-					Long encrypted_value = e.getValue();
+				long lower_value = Long.parseLong(op.low_value);
+				long higher_value = Long.parseLong(op.high_value);
 
-					if(id.startsWith(op.prefix)) {
-						long lower_value = Long.parseLong(op.low_value);
-						long higher_value = Long.parseLong(op.high_value);
-
-						if( lower_value <= encrypted_value && encrypted_value <= higher_value ) {
-							ids.add(id);
-						}
-					}
+				long encrypted_value = this.homo_ope_int_variables.get(op.id);
+				
+				if( lower_value <= encrypted_value && encrypted_value <= higher_value ) {
+					ids.add(op.id);
 				}
 				break;
 			case WALLET:
-				for( Entry<String, Double> e : accounts.entrySet() ) {
-					String id = e.getKey();
-					Integer value = (int) e.getValue().doubleValue();
-
-					if(id.startsWith(op.prefix)) {
-						int lower_value = Integer.parseInt(op.low_value);
-						int higher_value = Integer.parseInt(op.high_value);
-						if( lower_value <= value && value <= higher_value ) {
-							ids.add(id);
-						}
-
-					}
+				int lower_value_int = Integer.parseInt(op.low_value);
+				int higher_value_int = Integer.parseInt(op.high_value);
+				
+				int value = (int) this.accounts.get(op.id).doubleValue();
+				
+				if( lower_value_int <= value && value <= higher_value_int ) {
+					ids.add(op.id);
 				}
 				break;
 			}

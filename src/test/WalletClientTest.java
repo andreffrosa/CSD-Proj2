@@ -22,9 +22,9 @@ public class WalletClientTest {
 		myWallet.create(DataType.HOMO_OPE_INT, "OPI-1", 100);
 		myWallet.create(DataType.HOMO_OPE_INT, "OPI-2", 100);
 		
-		//myWallet.get("", 50, 150).forEach(System.out::println);
+		myWallet.get("", 50, 150).forEach(System.out::println);
 		
-		/*System.out.println(myWallet.get(DataType.WALLET, "WALLET-1"));
+		System.out.println(myWallet.get(DataType.WALLET, "WALLET-1"));
 		System.out.println(myWallet.get(DataType.WALLET, "WALLET-2"));
 		System.out.println(myWallet.get(DataType.HOMO_ADD, "HOMO_ADD-1"));
 		System.out.println(myWallet.get(DataType.HOMO_ADD, "HOMO_ADD-2"));
@@ -78,8 +78,7 @@ public class WalletClientTest {
 		System.out.println(myWallet.compare(DataType.HOMO_OPE_INT, "OPI-1", ConditionalOperation.LOWER, 100));
 		System.out.println(myWallet.compare(DataType.HOMO_OPE_INT, "OPI-1", ConditionalOperation.LOWER_OR_EQUAL, 100));
 		System.out.println(myWallet.compare(DataType.HOMO_OPE_INT, "OPI-1", ConditionalOperation.GREATER, 100));
-		System.out.println(myWallet.compare(DataType.HOMO_OPE_INT, "OPI-1", ConditionalOperation.GREATER_OR_EQUAL, 100));*/
-		
+		System.out.println(myWallet.compare(DataType.HOMO_OPE_INT, "OPI-1", ConditionalOperation.GREATER_OR_EQUAL, 100));
 		
 		List<UpdOp> ops = new LinkedList<>();
 		ops.add(new UpdOp(UpdOperation.SET, DataType.WALLET, "WALLET-2", 1));
@@ -98,7 +97,6 @@ public class WalletClientTest {
 		myWallet.cond_upd(DataType.HOMO_OPE_INT, "OPI-1", ConditionalOperation.EQUALS, 100, ops);
 		
 		System.out.println(myWallet.get(DataType.HOMO_OPE_INT, "OPI-2"));
-		
 	}
 	
 }

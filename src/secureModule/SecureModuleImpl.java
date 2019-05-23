@@ -105,56 +105,24 @@ public class SecureModuleImpl implements SecureModule {
 		List<GetBetweenOP> ops = request.ops;
 
 		List<String> ids = new ArrayList<>();
-
-		for(Iterator<GetBetweenOP> it = ops.iterator(); it.hasNext();){
-			GetBetweenOP op = it.next();
-			for(Iterator<Entry<String, BigInteger>> it2 =  homo_add_variables.entrySet().iterator(); it2.hasNext();){
-				Entry<String, BigInteger> e = it2.next();
-				String id = e.getKey();
-				BigInteger encrypted_value = e.getValue();
+		
+		for( GetBetweenOP op : ops) {
+			BigInteger encrypted_value = homo_add_variables.get(op.id);
+			
+			PaillierKey pk = decryptHomoAddKey(op.cipheredKey);
+			try {
+				int lower_value = HomoAdd.decrypt(new BigInteger(op.low_value), pk).intValue();
+				int higher_value = HomoAdd.decrypt(new BigInteger(op.high_value), pk).intValue();
+				int value = HomoAdd.decrypt(encrypted_value, pk).intValue();
 				
-				if(id.startsWith(op.prefix)) {
-					PaillierKey pk = decryptHomoAddKey(op.cipheredKey);
-					try {
-						int lower_value = HomoAdd.decrypt(new BigInteger(op.low_value), pk).intValue();
-						int higher_value = HomoAdd.decrypt(new BigInteger(op.high_value), pk).intValue();
-						int value = HomoAdd.decrypt(encrypted_value, pk).intValue();
-						
-						if(lower_value <= value && value <= higher_value) {
-							ids.add(id);
-						}
-					} catch (Exception e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-					
-					it2.remove();
+				if(lower_value <= value && value <= higher_value) {
+					ids.add(op.id);
 				}
-				
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
 			}
 		}
-		
-		/*for(Entry<String, BigInteger> e : homo_add_variables.entrySet()) {
-			String id = e.getKey();
-			BigInteger encrypted_value = e.getValue();
-			for(GetBetweenOP op : ops) {
-				if(id.startsWith(op.prefix)) {
-					PaillierKey pk = decryptHomoAddKey(op.cipheredKey);
-					try {
-						int lower_value = HomoAdd.decrypt(new BigInteger(op.low_value), pk).intValue();
-						int higher_value = HomoAdd.decrypt(new BigInteger(op.high_value), pk).intValue();
-						int value = HomoAdd.decrypt(encrypted_value, pk).intValue();
-						
-						if(lower_value <= value && value <= higher_value) {
-							ids.add(id);
-						}
-					} catch (Exception e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-				}
-			}
-		}*/
 
 		System.out.println(String.format("getBetweenHomoAdd(%d) : %d", ops.size(), ids.size()));
 		

@@ -304,23 +304,23 @@ public class Evaluation {
 		String key = "";
 		double value = 0.0;
 
-		id = "{" + exp + "} [" + run + "] (" + thread_id + ") " + "Total Transfers";
-		System.out.println(id + ": " + transaction_counter + " tx");
-		results.put(id, "" + transaction_counter);
+		key = "{" + exp + "} [" + run + "] (" + thread_id + ") " + "Total Transfers";
+		System.out.println(key + ": " + transaction_counter + " tx");
+		results.put(key, "" + transaction_counter);
 		
-		id = "{" + exp + "} [" + run + "] (" + thread_id + ") " + "Total Transfer Time";
+		key = "{" + exp + "} [" + run + "] (" + thread_id + ") " + "Total Transfer Time";
 		value = transfer_total_time / ((double) s_to_ns);
-		System.out.println(id + ": " + value + " s");
-		results.put(id, "" + value);
+		System.out.println(key + ": " + value + " s");
+		results.put(key, "" + value);
 		
-		id = "{" + exp + "} [" + run + "] (" + thread_id + ") " + "Total Balances";
-		System.out.println(id + ": " + balance_counter + " bx");
-		results.put(id, "" + balance_counter);
+		key = "{" + exp + "} [" + run + "] (" + thread_id + ") " + "Total Balances";
+		System.out.println(key + ": " + balance_counter + " bx");
+		results.put(key, "" + balance_counter);
 		
-		id = "{" + exp + "} [" + run + "] (" + thread_id + ") " + "Total Balance Time";
+		key = "{" + exp + "} [" + run + "] (" + thread_id + ") " + "Total Balance Time";
 		value = balance_total_time / ((double) s_to_ns);
-		System.out.println(id + ": " + value + " s");
-		results.put(id, "" + value);
+		System.out.println(key + ": " + value + " s");
+		results.put(key, "" + value);
 	}
 
 	private static void processThreadsResults(int run, int exp, int n_threads, ConcurrentMap<String, String> thread_results, Map<String, String> run_results) {
@@ -334,34 +334,34 @@ public class Evaluation {
 			String key = e.getKey();
 			String result = e.getValue();
 
-			if (id.contains("Total Transfers")) {
+			if (key.contains("Total Transfers")) {
 				total_transfers += Double.parseDouble(result);
-			} else if (id.contains("Total Transfer Time")) {
+			} else if (key.contains("Total Transfer Time")) {
 				total_transfer_time += Double.parseDouble(result);
-			} else if (id.contains("Total Balances")) {
+			} else if (key.contains("Total Balances")) {
 				total_balances += Double.parseDouble(result);
-			} else if (id.contains("Total Balance Time")) {
+			} else if (key.contains("Total Balance Time")) {
 				total_balance_time += Double.parseDouble(result);
 			} 
 		}
 		
 		String key = "";
 
-		id = "{" + exp + "} [" + run + "] Total Transfers";
-		System.out.println(id + ": " + total_transfers + " tx");
-		run_results.put(id, "" + total_transfers);
+		key = "{" + exp + "} [" + run + "] Total Transfers";
+		System.out.println(key + ": " + total_transfers + " tx");
+		run_results.put(key, "" + total_transfers);
 		
-		id = "{" + exp + "} [" + run + "] Total Transfer Time";
-		System.out.println(id + ": " + total_transfer_time + " s");
-		run_results.put(id, "" + total_transfer_time);
+		key = "{" + exp + "} [" + run + "] Total Transfer Time";
+		System.out.println(key + ": " + total_transfer_time + " s");
+		run_results.put(key, "" + total_transfer_time);
 		
-		id = "{" + exp + "} [" + run + "] Total Balances";
-		System.out.println(id + ": " + total_balances + " bx");
-		run_results.put(id, "" + total_balances);
+		key = "{" + exp + "} [" + run + "] Total Balances";
+		System.out.println(key + ": " + total_balances + " bx");
+		run_results.put(key, "" + total_balances);
 		
-		id = "{" + exp + "} [" + run + "] Total Balance Time";
-		System.out.println(id + ": " + total_balance_time + " s");
-		run_results.put(id, "" + total_balance_time);
+		key = "{" + exp + "} [" + run + "] Total Balance Time";
+		System.out.println(key + ": " + total_balance_time + " s");
+		run_results.put(key, "" + total_balance_time);
 	}
 
 	private static void processRunResults(int exp, int n_runs, Map<String, String> run_results, Map<String, String> exp_results) {
@@ -375,13 +375,13 @@ public class Evaluation {
 			String key = e.getKey();
 			String result = e.getValue();
 
-			if (id.contains("Total Transfers")) {
+			if (key.contains("Total Transfers")) {
 				total_transfers += Double.parseDouble(result);
-			} else if (id.contains("Total Transfer Time")) {
+			} else if (key.contains("Total Transfer Time")) {
 				total_transfer_time += Double.parseDouble(result);
-			} else if (id.contains("Total Balances")) {
+			} else if (key.contains("Total Balances")) {
 				total_balances += Double.parseDouble(result);
-			} else if (id.contains("Total Balance Time")) {
+			} else if (key.contains("Total Balance Time")) {
 				total_balance_time += Double.parseDouble(result);
 			} 
 		}
@@ -393,21 +393,21 @@ public class Evaluation {
 		
 		String key = "";
 
-		id = "{" + exp + "} Total Transfers";
-		System.out.println(id + ": " + total_transfers + " tx");
-		exp_results.put(id, "" + total_transfers);
+		key = "{" + exp + "} Total Transfers";
+		System.out.println(key + ": " + total_transfers + " tx");
+		exp_results.put(key, "" + total_transfers);
 		
-		id = "{" + exp + "} Total Transfer Time";
-		System.out.println(id + ": " + total_transfer_time + " s");
-		exp_results.put(id, "" + total_transfer_time);
+		key = "{" + exp + "} Total Transfer Time";
+		System.out.println(key + ": " + total_transfer_time + " s");
+		exp_results.put(key, "" + total_transfer_time);
 		
-		id = "{" + exp + "} Total Balances";
-		System.out.println(id + ": " + total_balances + " bx");
-		exp_results.put(id, "" + total_balances);
+		key = "{" + exp + "} Total Balances";
+		System.out.println(key + ": " + total_balances + " bx");
+		exp_results.put(key, "" + total_balances);
 		
-		id = "{" + exp + "} Total Balance Time";
-		System.out.println(id + ": " + total_balance_time + " s");
-		exp_results.put(id, "" + total_balance_time);
+		key = "{" + exp + "} Total Balance Time";
+		System.out.println(key + ": " + total_balance_time + " s");
+		exp_results.put(key, "" + total_balance_time);
 	}
 
 	private static void storeResults(Map<String, String[]> results, String path) {

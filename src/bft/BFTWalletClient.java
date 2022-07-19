@@ -4,10 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
-import java.util.ArrayList;
 import java.util.List;
-
-import com.google.gson.GsonBuilder;
 
 import bft.reply.ReplyExtractor;
 import bftsmart.tom.ServiceProxy;

@@ -1,4 +1,5 @@
 package utils;
+
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -6,9 +7,6 @@ import java.util.Map.Entry;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-
-import wallet.GetBetweenOP;
-import wallet.UpdOp;
 
 public class Serializor {
 
@@ -39,14 +37,6 @@ public class Serializor {
 		
 		return list;
 	}
-	
-/*	public static String serializeUpds() {
-		
-	}
-	
-	public static List<UpdOp> deSerializeUpds(String json) {
-		
-	}*/
 	
 	public static String serializeEntryList(List<Entry<String, Long>> list) {
 		

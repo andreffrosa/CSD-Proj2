@@ -32,18 +32,23 @@ public class SecureModuleRESTServer {
 		System.setProperty("javax.net.ssl.trustStorePassword", SERVER_TRUSTSTORE_PWD);
 
 		if (args.length < 1) {
-			System.err.println("Usage: SecureModuleRESTServer <port> [authenticate_clients]");
+			System.err.println("Usage: SecureModuleRESTServer <port> [use_cache] [authenticate_clients]");
 			System.exit(-1);
 		}
 
 		int port = Integer.parseInt(args[0]);
+		
+		boolean use_cache = true;
+		if (args.length > 1) {
+			use_cache = Boolean.parseBoolean(args[1]);
+		}
 
 		boolean authenticate_clients = false;
 		if (args.length > 2) {
-			authenticate_clients = Boolean.parseBoolean(args[1]);
+			authenticate_clients = Boolean.parseBoolean(args[2]);
 		}
 
-		SecureModule sec_module = new SecureModuleImpl();
+		SecureModule sec_module = new SecureModuleImpl(use_cache);
 
 		URI baseUri = UriBuilder.fromUri("https://0.0.0.0/").port(port).build();
 
@@ -71,9 +76,10 @@ public class SecureModuleRESTServer {
 		server.start();
 
 		System.out.println("\n\t#######################################################"
-				+ "\n\t    Secure Module Server ready @ " + baseUri 
-				+ "\n\t          Client Authentication: " + authenticate_clients 
-				+ "\n\t#######################################################");
+						 + "\n\t    Secure Module Server ready @ " + baseUri 
+						 + "\n\t          Client Authentication: " + authenticate_clients 
+						 + "\n\t                      Use Cache: " + use_cache 
+						 + "\n\t#######################################################");
 
 	}
 

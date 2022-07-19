@@ -33,8 +33,8 @@ public class SecureModuleRESTClient {
 	private static final String CLIENT_TRUSTSTORE_PWD = "CSD1819";
 
 	private final int MAX_TRIES = 5;
-	private final int CONNECT_TIMEOUT = 35000;
-	private final int READ_TIMEOUT = 30000;
+	private final int CONNECT_TIMEOUT = 95000;
+	private final int READ_TIMEOUT = 90000;
 
 	// Private Variables
 	private Client client;

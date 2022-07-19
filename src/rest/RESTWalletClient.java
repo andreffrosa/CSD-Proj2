@@ -33,7 +33,6 @@ import rest.entities.LedgerRequest;
 import rest.entities.SetRequest;
 import rest.entities.SumRequest;
 import rest.entities.TransferRequest;
-import utils.Serializor;
 import wallet.ConditionalOperation;
 import wallet.DataType;
 import wallet.GetBetweenOP;
@@ -57,8 +56,8 @@ public class RESTWalletClient implements Wallet {
 	private static final String CLIENT_TRUSTSTORE_PWD = "CSD1819";
 
 	private final int MAX_TRIES = 5;
-	private final int CONNECT_TIMEOUT = 55000;
-	private final int READ_TIMEOUT = 50000;
+	private final int CONNECT_TIMEOUT = 95000;
+	private final int READ_TIMEOUT = 90000;
 
 	// Private Variables
 	private Client client;

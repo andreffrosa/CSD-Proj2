@@ -3,7 +3,6 @@ package wallet;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -212,13 +211,9 @@ public class SimpleWallet implements Wallet {
 			}
 		}
 		
-		System.out.println("ola");
-		
 		if(homo_add_list.size() > 0) {
 			ids.addAll(secureModule.getBetweenHomoAdd(aux_homo_add_vars, homo_add_list));
 		}
-		
-		System.out.println("adeus");
 
 		return ids;
 	}

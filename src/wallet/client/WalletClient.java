@@ -212,7 +212,7 @@ public class WalletClient implements WalletAPI {
 	}
 
 	@Override
-	public boolean create(DataType type, String id, int initial_value) throws InvalidAddressException, InvalidAmountException, InvalidSignatureException, NotEnoughMoneyException {
+	public boolean create(DataType type, String id, int initial_value) throws InvalidAddressException {
 
 		String encrypted_value = "";
 
@@ -258,27 +258,31 @@ public class WalletClient implements WalletAPI {
 
 		List<GetBetweenOP> ops = new LinkedList<>();
 
+		DataType type = DataType.HOMO_OPE_INT;
 		for(Entry<String,Long> e : this.homo_ope_int_variables.entrySet()) {
 			String current_id = e.getKey();
 			if(current_id.startsWith(id_prefix)) {
-				DataType type = DataType.HOMO_OPE_INT;
+				
 				String key = getKey(type, current_id);
-				ops.add(new GetBetweenOP(type, current_id, encryptValue(type, key, lower_value), encryptValue(type, key, higher_value), encryptKey(type, key)));
+				ops.add(new GetBetweenOP(type, current_id, encryptValue(type, key, lower_value), encryptValue(type, key, higher_value), encryptForSecureModule(type, key)));
 			}
 		}
 
+		type = DataType.HOMO_ADD;
+		String lower = encryptForSecureModule(type, ""+lower_value);
+		String higher = encryptForSecureModule(type, ""+higher_value);
 		for(Entry<String,PaillierKey> e : this.homo_add_variables.entrySet()) {
 			String current_id = e.getKey();
 			if(current_id.startsWith(id_prefix)) {
-				DataType type = DataType.HOMO_ADD;
 				String key = getKey(type, current_id);
-				ops.add(new GetBetweenOP(type, current_id, encryptValue(type, key, lower_value), encryptValue(type, key, higher_value), encryptKey(type, key)));
+				//ops.add(new GetBetweenOP(type, current_id, encryptValue(type, key, lower_value), encryptValue(type, key, higher_value), encryptForSecureModule(type, key)));
+				ops.add(new GetBetweenOP(type, current_id, lower, higher, encryptForSecureModule(type, key)));
 			}
 		}
 
+		type = DataType.WALLET;
 		for(String current_id : wallets) {
 			if(current_id.startsWith(id_prefix)) {
-				DataType type = DataType.WALLET;
 				ops.add(new GetBetweenOP(type, current_id, "" + lower_value, "" + higher_value, ""));
 			}
 		}
@@ -304,7 +308,7 @@ public class WalletClient implements WalletAPI {
 	public boolean compare(DataType type, String id, ConditionalOperation op, int value) throws InvalidAddressException, InvalidTypeException, InvalidOperationException {
 		String key = getKey(type, id);
 
-		return wallet.compare(type, id, op, encryptValue(type, key, value), encryptKey(type, key));
+		return wallet.compare(type, id, op, encryptValue(type, key, value), encryptForSecureModule(type, key));
 	}
 
 	@Override
@@ -320,7 +324,7 @@ public class WalletClient implements WalletAPI {
 			op.upd_value_unciphered = 0;
 		}
 		
-		return wallet.cond_upd(cond_type, cond_id, cond, encryptValue(cond_type, cond_key, cond_val), encryptKey(cond_type, cond_key), ops);
+		return wallet.cond_upd(cond_type, cond_id, cond, encryptValue(cond_type, cond_key, cond_val), encryptForSecureModule(cond_type, cond_key), ops);
 	}
 
 	private String getAuxArg(DataType type, String id) throws InvalidAddressException {
@@ -335,7 +339,7 @@ public class WalletClient implements WalletAPI {
 
 			return pk.getNsquare().toString();
 		case HOMO_OPE_INT:
-			return encryptKey(type, getKey(type, id));
+			return encryptForSecureModule(type, getKey(type, id));
 		case WALLET:
 			return "";
 		}
@@ -343,15 +347,15 @@ public class WalletClient implements WalletAPI {
 		return null;
 	}
 	
-	private String encryptKey(DataType type, String key) throws InvalidAddressException {
+	private String encryptForSecureModule(DataType type, String value) throws InvalidAddressException {
 
 		byte[] rawCipheredKey;
 		switch(type) {
 		case HOMO_ADD:
-			rawCipheredKey = Cryptography.encrypt(secureModule_ks, key.getBytes(), SecureModuleImpl.CIPHER_ALGORITHM);
+			rawCipheredKey = Cryptography.encrypt(secureModule_ks, value.getBytes(), SecureModuleImpl.CIPHER_ALGORITHM);
 			return java.util.Base64.getEncoder().encodeToString(rawCipheredKey);
 		case HOMO_OPE_INT:
-			rawCipheredKey = Cryptography.encrypt(secureModule_ks, key.getBytes(), SecureModuleImpl.CIPHER_ALGORITHM);
+			rawCipheredKey = Cryptography.encrypt(secureModule_ks, value.getBytes(), SecureModuleImpl.CIPHER_ALGORITHM);
 			return java.util.Base64.getEncoder().encodeToString(rawCipheredKey);
 		case WALLET:
 			return "";

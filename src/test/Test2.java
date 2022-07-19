@@ -1,17 +1,7 @@
 package test;
-import java.math.BigInteger;
-import java.util.List;
-import java.util.Map.Entry;
-
-import hlib.hj.mlib.HomoAdd;
-import hlib.hj.mlib.HomoOpeInt;
-import hlib.hj.mlib.PaillierKey;
 import replicaManager.ReplicaManagerRESTClient;
-import rest.RESTWalletClient;
 import utils.Cryptography;
 import utils.IO;
-import wallet.Wallet;
-import wallet.exceptions.InvalidAddressException;
 
 public class Test2 {
 	// Temp
@@ -24,7 +14,7 @@ public class Test2 {
 
 		ReplicaManagerRESTClient replica = new ReplicaManagerRESTClient("CSD1819", "https://localhost:8030/");
 
-		String id = replica.launch(fileName, hash, className, r_args);
+		/*String id = */replica.launch(fileName, hash, className, r_args);
 
 		System.out.println("Replica lauched!");
 
